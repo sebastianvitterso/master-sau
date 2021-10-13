@@ -3,7 +3,7 @@ import path from 'path';
 
 // HELPERS
 
-const BASE_PATH = path.resolve('../sauebilder/Lønset/RGB_unlabeled/')
+const BASE_PATH = path.resolve('../raw_data/Lønset/RGB_unlabeled/')
 function fullPath(filename) {
   return `${BASE_PATH}\\${filename}`
 }

@@ -4,7 +4,7 @@ import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('../sauebilder/hallvard/102MEDIA/')
+const FROM_PATH = path.resolve('../raw_data/hallvard/102MEDIA/')
 const TO_PATH_IR = path.resolve('./output/IR')
 const TO_PATH_RGB = path.resolve('./output/RGB')
 

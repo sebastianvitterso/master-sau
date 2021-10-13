@@ -4,9 +4,9 @@ import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('../sauebilder/Lønset/RGB/')
-const LABELS_PATH = path.resolve('../sauebilder/Lønset/labels/')
-const TO_PATH = path.resolve('../sauebilder/Lønset/RGB_unlabeled/')
+const FROM_PATH = path.resolve('../raw_data/Lønset/RGB/')
+const LABELS_PATH = path.resolve('../raw_data/Lønset/labels/')
+const TO_PATH = path.resolve('../raw_data/Lønset/RGB_unlabeled/')
 
 // SCRIPT
 
