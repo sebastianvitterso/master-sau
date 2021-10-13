@@ -1,0 +1,11 @@
+*.jpg
+*.png
+*.pt
+
+data/
+raw_data/
+
+yolov5/data/
+yolov5/runs/
+
+node_modules
