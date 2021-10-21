@@ -20,19 +20,17 @@ function removeRoboflowHash(fileName) {
 
 // SCRIPT
 
-const images = await readdir(FROM_PATH)
+// const images = await readdir(FROM_PATH)
 const labels = await readdir(LABELS_PATH)
 
-for (const fileName of images) {
+for (const fileName of labels) {
   const name = removeRoboflowHash(fileName)
 
-  const oldPath = fullPath(fileName, FROM_PATH)
-  const newPath = fullPath(name, FROM_PATH)
+  const oldPath = fullPath(fileName, LABELS_PATH)
+  const newPath = fullPath(name, LABELS_PATH)
   
-  // console.log(oldPath, newPath)
-  rename(oldPath, newPath)
+  console.log(oldPath, newPath)
+  // rename(oldPath, newPath)
 
 }
-
-
 
