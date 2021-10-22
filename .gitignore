@@ -10,4 +10,4 @@ yolov5/runs/
 
 node_modules
 
-**/*.out
+*.out
