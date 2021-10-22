@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=12000
-#SBATCH --job-name="Testing_capabilities"
+#SBATCH --job-name="debug.slurm"
 #SBATCH --output=debug.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no
 #SBATCH --mail-type=END
