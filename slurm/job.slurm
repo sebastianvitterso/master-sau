@@ -14,6 +14,7 @@
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
+pip freeze --user | xargs pip uninstall -y
 module purge
 module load fosscuda/2020b
 module load Python/3.8.6-GCCcore-10.2.0
@@ -22,7 +23,6 @@ module load PyTorch/1.7.1-fosscuda-2020b
 cd ..
 cd yolov5
 pwd
-pip freeze --user | xargs pip uninstall -y
 pip install -r requirements.txt --no-cache-dir
 
 python train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5s.pt --cache --freeze 10 --device 0
