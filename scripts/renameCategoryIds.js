@@ -5,14 +5,8 @@ import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('./roboflow_images/')
-const LABELS_PATH = path.resolve('./roboflow_labels/')
-const TO_PATH = path.resolve('./output/labels/')
+const LABELS_PATH = path.resolve('../data/train/labels/')
 
-// SCRIPT
-
-const images = await readdir(FROM_PATH)
-const labels = await readdir(LABELS_PATH)
 
 const categoriesConverter = { // THIS IS WITHOUT BROWN
   '0': '2', // Roboflow black 0 to standard 2
@@ -24,11 +18,20 @@ let distribution = {
   '0': 0,
   '1': 0,
   '2': 0,
+  '3': 0,
+  '4': 0,
+  '5': 0,
+  '6': 0,
 }
 
 function renameCategoryId(name) {
   try {
     const data = readFileSync(LABELS_PATH + '/' + name, 'utf8')
+    
+    if (data == '') {
+      return
+    }
+    
     // Split into rows
     let rows = data.split('\n')
   
@@ -47,6 +50,8 @@ function renameCategoryId(name) {
     // Make string output
     rows = rows.map(r => r.join(' '))
     const output = rows.join('\n')
+
+    // console.log(output)
   
     writeFileSync(LABELS_PATH + '/' + name, output)
   
@@ -55,7 +60,9 @@ function renameCategoryId(name) {
   }
 }
 
+// SCRIPT
 
+const labels = await readdir(LABELS_PATH)
 
 for (const fileName of labels) {
   renameCategoryId(fileName)
