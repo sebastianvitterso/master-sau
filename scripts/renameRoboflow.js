@@ -33,4 +33,3 @@ for (const fileName of labels) {
   rename(oldPath, newPath)
 
 }
-

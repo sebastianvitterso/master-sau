@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sbatch job.slurm
+rm job.out
+tail -F job.out

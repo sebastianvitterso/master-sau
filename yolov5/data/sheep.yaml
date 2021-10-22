@@ -1,0 +1,6 @@
+path: ../data/
+train: ./train/images
+val: ./validation/images
+
+nc: 4
+names: ['white sheep', 'brown sheep', 'black sheep', 'grey sheep']
