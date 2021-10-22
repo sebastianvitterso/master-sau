@@ -22,7 +22,7 @@ echo "We are using $SLURM_CPUS_ON_NODE cores per node"
 echo "Total of $SLURM_NTASKS cores"
 
 module purge
-module avail
+module spider
 
 
 uname -a

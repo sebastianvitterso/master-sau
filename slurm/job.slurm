@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH --partition=CPUQ
+#SBATCH --partition=GPUQ
 #SBATCH --account=ie-idi
 #SBATCH --time=00:15:00
 #SBATCH --nodes=1
@@ -23,7 +23,7 @@ pwd
 pip freeze --user | xargs pip uninstall -y
 pip install -r requirements.txt --no-cache-dir
 
-python train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5s.pt --cache --freeze 10 # --device 0
+python train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5s.pt --cache --freeze 10 --device 0
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
 
 uname -a
