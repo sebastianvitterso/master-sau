@@ -1,5 +1,6 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
+#SBATCH --gres=gpu:1
 #SBATCH --account=ie-idi
 #SBATCH --time=02:00:00
 #SBATCH --nodes=1
@@ -15,7 +16,7 @@ cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
 module purge
 module load Python/3.8.6-GCCcore-10.2.0
-# module load PyTorch/1.7.1-fosscuda-2020b
+module load PyTorch/1.7.1-fosscuda-2020b-v100
 
 cd ..
 cd yolov5

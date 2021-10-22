@@ -8,7 +8,7 @@
 #SBATCH --job-name="debug.slurm"
 #SBATCH --output=debug.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no
-#SBATCH --mail-type=END
+#SBATCH --mail-type=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
@@ -22,7 +22,7 @@ echo "We are using $SLURM_CPUS_ON_NODE cores per node"
 echo "Total of $SLURM_NTASKS cores"
 
 module purge
-module spider
+module spider PyTorch
 
 
 uname -a
