@@ -3,9 +3,9 @@ import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('./roboflow_images/')
-const LABELS_PATH = path.resolve('./roboflow_labels/')
-const TO_PATH = path.resolve('./output/labels/')
+const FROM_PATH = path.resolve('../raw_data/hallvard/images/')
+const LABELS_PATH = path.resolve('../raw_data/hallvard/labels/')
+const TO_PATH = path.resolve('../raw_data/hallvard/labels/')
 
 function fullPath(filename, basePath=FROM_PATH) {
   return `${basePath}\\${filename}`
@@ -13,7 +13,7 @@ function fullPath(filename, basePath=FROM_PATH) {
 
 function removeRoboflowHash(fileName) {
   const parts = fileName.split('.')
-  const name = parts[0].replace('_JPG', '') + '.' + parts[parts.length - 1]
+  const name = parts[0].replace('_jpg', '').replace('_JPG', '') + '.' + parts[parts.length - 1]
   return name
 }
 
@@ -30,7 +30,7 @@ for (const fileName of labels) {
   const newPath = fullPath(name, LABELS_PATH)
   
   console.log(oldPath, newPath)
-  // rename(oldPath, newPath)
+  rename(oldPath, newPath)
 
 }
 
