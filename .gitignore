@@ -9,3 +9,5 @@ yolov5/data/
 yolov5/runs/
 
 node_modules
+
+**/*.out
