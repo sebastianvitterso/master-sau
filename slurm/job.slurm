@@ -15,8 +15,9 @@ WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
 module purge
+module load fosscuda/2020b
 module load Python/3.8.6-GCCcore-10.2.0
-module load PyTorch/1.7.1-fosscuda-2020b-v100
+module load PyTorch/1.7.1-fosscuda-2020b
 
 cd ..
 cd yolov5
