@@ -17,28 +17,22 @@ RGB_FOLDER = 'rgb/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-# these are _with_ extension (e.g.'2021_09_holtan_0535.JPG' or '2021_09_holtan_0535.txt')
-rgb_images = [] # .JPG
-ir_images  = [] # .JPG
-label_files = [] # .txt
-
 def main():
-    initialize_filepath_lists()
 
-    for rgb_filename in rgb_images:
+    for rgb_filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
         raw_rgb = cv2.imread(INPUT_BASE_FOLDER + RGB_FOLDER + rgb_filename)
         cropped_rgb = helpers.crop_img(raw_rgb)
         cv2.imwrite(OUTPUT_BASE_FOLDER + RGB_FOLDER + rgb_filename, cropped_rgb)
         print(f"Processed RGB: {rgb_filename}")
 
-    for ir_filename in ir_images:
+    for ir_filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
         raw_ir = cv2.imread(INPUT_BASE_FOLDER + IR_FOLDER + ir_filename)
         transformed_ir = helpers.transform_IR_im_to_vis_coordinate_system(raw_ir)
         cropped_img = helpers.crop_img(transformed_ir)
         cv2.imwrite(OUTPUT_BASE_FOLDER + IR_FOLDER + ir_filename, cropped_img)
         print(f"Processed IR: {ir_filename}")
 
-    for label_filename in label_files:
+    for label_filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
         raw_labels = helpers.read_label_file_lines(INPUT_BASE_FOLDER + LABEL_FOLDER + label_filename)
         new_labels = []
         for raw_label in raw_labels:
@@ -50,30 +44,6 @@ def main():
         helpers.write_label_file(OUTPUT_BASE_FOLDER + LABEL_FOLDER + label_filename, new_labels)
         print(f"Processed labelfile: {label_filename}")
         
-
-
-
-
-
-def initialize_filepath_lists():
-    global rgb_images
-    global ir_images
-    global label_files
-
-    for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
-        if(os.path.isfile(INPUT_BASE_FOLDER + RGB_FOLDER + filename)):
-            rgb_images.append(filename)
-    
-    for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
-        if(os.path.isfile(INPUT_BASE_FOLDER + IR_FOLDER + filename)):
-            ir_images.append(filename)
-
-    for filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
-        if(os.path.isfile(INPUT_BASE_FOLDER + LABEL_FOLDER + filename)):
-            label_files.append(filename)
-
-    print(f"Filepath lists initialized. {len(rgb_images)} RGB, {len(ir_images)} IR, {len(label_files)} labels.")
-
 if(__name__ == "__main__"):
     main()
         
