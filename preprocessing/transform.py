@@ -17,8 +17,16 @@ RGB_FOLDER = 'rgb/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-if(__name__ == "__main__"):
+def show_examples():
+    filename = "2021_09_holtan_0535"
+    img_rgb = cv2.imread(OUTPUT_BASE_FOLDER + RGB_FOLDER + filename + ".JPG")
+    img_ir = cv2.imread(OUTPUT_BASE_FOLDER + IR_FOLDER + filename + ".JPG")
+    label_lines = helpers.read_label_file_lines(OUTPUT_BASE_FOLDER + LABEL_FOLDER + filename + ".txt")
+    labels = map(lambda label_line: Label.fromLabelLine(label_line, True), label_lines)
 
+    helpers.show_image_pair(img_rgb, img_ir, labels)
+
+def transform_data():
     for rgb_filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
         raw_rgb = cv2.imread(INPUT_BASE_FOLDER + RGB_FOLDER + rgb_filename)
         cropped_rgb = helpers.crop_img(raw_rgb)
@@ -43,4 +51,10 @@ if(__name__ == "__main__"):
 
         helpers.write_label_file(OUTPUT_BASE_FOLDER + LABEL_FOLDER + label_filename, new_labels)
         print(f"Processed labelfile: {label_filename}")
+
+
+if __name__ == "__main__":
+    show_examples()
+    # transform_data()
+
         

@@ -42,21 +42,22 @@ def crop_img(img):
         CORNER_TOP_LEFT[0]:CORNER_BOTTOM_RIGHT[0],
     ]
 
-def show_image_pair(img_rgb, img_ir):
-    transformed_img_ir = transform_IR_im_to_vis_coordinate_system(img_ir)
+def show_image_pair(img_rgb, img_ir, labels=None):
 
-    cropped_img_rgb = crop_img(img_rgb)
-    cropped_img_ir = crop_img(transformed_img_ir)
+    blended_img = np.maximum(img_rgb, img_ir)
 
-    cropped_blended_img = np.maximum(cropped_img_rgb, cropped_img_ir)
-
+    if labels is not None:
+        for label in labels:
+            blended_img = cv2.rectangle(blended_img, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
+    
     plt.figure()
     plt.subplot(2, 3, 1)
-    plt.imshow(cropped_img_rgb)
+    plt.imshow(img_rgb)
     plt.subplot(2, 3, 4)
-    plt.imshow(cropped_img_ir)
+    plt.imshow(img_ir)
     plt.subplot(2, 3, (2,6))
-    plt.imshow(cropped_blended_img)
+    plt.imshow(blended_img)
+    plt.get_current_fig_manager().full_screen_toggle()
     plt.show()
 
 def read_label_file_lines(filepath: str):
@@ -65,99 +66,8 @@ def read_label_file_lines(filepath: str):
 
 def write_label_file(filepath: str, labels: list):
     label_lines = list(map(lambda label: label.toLabelLine(), labels))
-    label_file_text = '\n'.join(label_lines)
+    label_file_text = '/n'.join(label_lines)
     with open(filepath, 'w') as file:
         file.write(label_file_text)
 
-
-
-# plt.imshow(cropped)
-
-#scaleX = wIR/ cropped.shape[1]
-#print(scaleX)
-#scaleY = hIR/ cropped.shape[0]
-#print(scaleY)
-#cropped = cv2.resize(cropped, (wIR, hIR))
-#cropped = distort_im(cropped)
-#cropped = cropped[33:420, 57:566]
-#cropped =  cv2.remap(cropped, mapx2, mapy2, cv2.INTER_LINEAR)
-
-#plt.figure()
-#plt.imshow(cropped)
-
-#min_corner = [ 396, 2752]
-#max_corner = [3748,  176]
-#print(cropped.shape)
-
-
-
-#corners = select_coordinates_from_image(cropped*255)
-#print(corners)
-
-#def distort_point(p):
-#
-#    cx = K[0,2]
-#    cy = K[1,2]
-#    fx = K[0,0]
-#    fy = K[1,1]
-#    k1 = dist[0][0] *-1
-#    k2 = dist[0][1] * -1
-#    k3 = dist[0][-1] *-1
-#    p1 = dist[0][2] * -1
-#    p2 = dist[0][3] *-1
-#    
-#    x = ( p[0]- cx) / fx
-#    y = (p[1]- cy) / fy
-#
-#    
-#    r2 = x*x + y*y
-#        
-#    xDistort = x * (1 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2)
-#    yDistort = y * (1 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2)
-#    
-#    xDistort = xDistort + (2 * p1 * x * y + p2 * (r2 + 2 * x * x))
-#    yDistort = yDistort + (p1 * (r2 + 2 * y * y) + 2 * p2 * x * y)
-#    
-#    xDistort = xDistort * fx + cx
-#    yDistort = yDistort * fy + cy
-#    
-#    
-#    return[xDistort, yDistort]
-#
-#
-#def normalise_p(p):
-#    cx = K[0,2]
-#    cy = K[1,2]
-#    fx = K[0,0]
-#    fy = K[1,1]
-#    
-#    x = ( float(p[0])- float(cx)) / float(fx)
-#    y = ( float(p[1])- float(cy)) / float(fy)
-#    
-#    
-#    return np.array([x,y, 1], np.float32)
-#
-#
-#
-# 
-#
-#def transform_vis_points_to_IR(pts):
-#    print(T_v2IR)
-#
-#    T = T_v2IR
-#    #scale x:
-#    T[0,0] = T[0,0]
-#    #scale y:
-#    T[1,1] = T[1,1]
-#    #trans x:
-#    T[0,2] = T[0,2]
-#    #trans y:
-#    T[1,2] = T[1,2]
-#
-#    pts = transform.AffineTransform( T )(pts)
-#    pts =np.asarray(pts, np.float32)
-#    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist*-1,(wIR, hIR),1,(wIR, hIR))
-#    undistorted = cv2.undistortPoints(pts.reshape((pts.shape[0],1,2)), K, dist, P=newcameramtx)
-#    return undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
-#
-
+    
