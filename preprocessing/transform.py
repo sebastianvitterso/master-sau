@@ -17,7 +17,7 @@ RGB_FOLDER = 'rgb/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-def main():
+if(__name__ == "__main__"):
 
     for rgb_filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
         raw_rgb = cv2.imread(INPUT_BASE_FOLDER + RGB_FOLDER + rgb_filename)
@@ -43,7 +43,4 @@ def main():
 
         helpers.write_label_file(OUTPUT_BASE_FOLDER + LABEL_FOLDER + label_filename, new_labels)
         print(f"Processed labelfile: {label_filename}")
-        
-if(__name__ == "__main__"):
-    main()
         
