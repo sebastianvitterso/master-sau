@@ -47,7 +47,7 @@ for (const image of images) {
 
   let newName = oldName                                             // may20_100MEDIA_DJI_0690.JPG
   // newName = newName.replace('aug19_10', '2019_08_storli1_')         // 2020_05_orkanger_0MEDIA_DJI_0690.JPG
-  newName = newName.replace('DJI_0', '2021_09_holtan_2')                      // 2020_05_orkanger_0690.JPG
+  newName = newName.replace('DJI_0', '2021_10_holtan_2')                      // 2020_05_orkanger_0690.JPG
 
   if(!isRGB) {
     newName = formatAsIR(newName)                                   // 2020_05_orkanger_0689_IR.JPG

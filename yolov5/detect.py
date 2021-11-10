@@ -77,7 +77,41 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     pt, onnx, tflite, pb, saved_model = (suffix == x for x in suffixes)  # backend booleans
     stride, names = 64, [f'class{i}' for i in range(1000)]  # assign defaults
     if pt:
-        model = attempt_load(weights, map_location=device)  # load FP32 model
+        # model = attempt_load(weights, map_location=device)  # load FP32 model
+        from models.yolo import Model, Detect
+        from models.common import Conv
+        from torch import nn
+
+
+        yolov5 = torch.load(w)['model'].float().eval()
+        for m in yolov5.modules():
+            if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, Detect, Model]:
+                m.inplace = True  # pytorch 1.7.0 compatibility
+            elif type(m) is Conv:
+                m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
+
+        # yolov5.inplace = True  # pytorch 1.7.0 compatibility
+
+        # from models.yolo_fusion import Model
+        model = Model()
+        
+        # new_parameters = dict(model.named_parameters())
+        # for key in dict(model.named_parameters()).keys():
+        #     domain = key.split('.')[0]
+        #     layer_tokens = key.split('.')[1:]
+        #     if domain == 'head': 
+        #         layer_tokens[0] = str(int(layer_tokens[0]) + 10)
+                
+        #     layer = '.'.join(layer_tokens)
+        #     new_key = 'model.'+layer
+        #     try:
+        #         new_parameters[key] = dict(yolov5.named_parameters())[new_key] 
+        #     except:
+        #         pass
+        # exit()
+        # model.load_state_dict({**new_parameters, **model.state_dict()}, strict=False)
+        model.load_state_dict(yolov5.state_dict(), strict=False)
+        
         stride = int(model.stride.max())  # model stride
         names = model.module.names if hasattr(model, 'module') else model.names  # get class names
         if half:
