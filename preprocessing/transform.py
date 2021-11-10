@@ -51,26 +51,26 @@ def show_blended_output(filename:str, partition:tuple[int, int]=None):
 
 
 def transform_data():
-    # for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
-    #     image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
-    #     image = image.crop()
-    #     image.saveToImagePath(OUTPUT_BASE_FOLDER + RGB_FOLDER + filename)
-    #     fileroot = filename.split('.')[0]
-    #     for partition_image in image.partitions():
-    #         partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
-    #         partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_filename)
-    #     print(f"Processed RGB: {fileroot}")
+    for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
+        image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
+        image = image.crop()
+        image.saveToImagePath(OUTPUT_BASE_FOLDER + RGB_FOLDER + filename)
+        fileroot = filename.split('.')[0]
+        for partition_image in image.partitions():
+            partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
+            partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_filename)
+        print(f"Processed RGB: {fileroot}")
 
-    # for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
-    #     image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
-    #     image = image.undistort()
-    #     image = image.crop()
-    #     image.saveToImagePath(OUTPUT_BASE_FOLDER + IR_FOLDER + filename)
-    #     fileroot = filename.split('.')[0]
-    #     for partition_image in image.partitions():
-    #         partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
-    #         partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_filename)
-    #     print(f"Processed IR: {fileroot}")
+    for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
+        image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
+        image = image.undistort()
+        image = image.crop()
+        image.saveToImagePath(OUTPUT_BASE_FOLDER + IR_FOLDER + filename)
+        fileroot = filename.split('.')[0]
+        for partition_image in image.partitions():
+            partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
+            partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_filename)
+        print(f"Processed IR: {fileroot}")
 
     for filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
         label_set = LabelSet.loadFromFilePath(INPUT_BASE_FOLDER + LABEL_FOLDER + filename, is_cropped=False)
