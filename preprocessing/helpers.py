@@ -48,11 +48,21 @@ VALIDATION_SET = (
     ('2021_09_holtan_', (2201, 2223)),
 )
 
-def GET_VALIDATION_SET_FILEROOTS() -> List[str]:
+def GET_VALIDATION_SET_FILEROOTS(partitioning_size:tuple[int,int]=None) -> List[str]:
     validation_set = []
+
+    partitioning_set = ['']
+    if partitioning_size is not None:
+        partitioning_set = []
+        for x in range(partitioning_size[0]):
+            for y in range(partitioning_size[1]):
+                partitioning_set.append(f'_p{x}{y}')
+
     for prefix, (from_num, to_num) in VALIDATION_SET:
         for i in range(from_num, to_num + 1):
             name = f'{prefix}{i:04}'
-            validation_set.append(name)
+            for partition in partitioning_set:
+                partition_name = name + partition
+                validation_set.append(partition_name)
     
     return validation_set

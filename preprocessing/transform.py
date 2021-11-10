@@ -87,6 +87,6 @@ def transform_data():
 
 if __name__ == "__main__":
     transform_data()
-    show_blended_output("2021_09_holtan_0535", partition=(2,1))
+    # show_blended_output("2021_09_holtan_0535", partition=(2,1))
 
         
