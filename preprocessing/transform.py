@@ -7,54 +7,84 @@ Depends on research done by Kari Meling Johannesen in her masters: https://githu
 """
 import cv2
 import os
-from Label import Label
-import transformation_helpers as helpers
+import numpy as np
+from matplotlib import pyplot as plt
+from Label import Label, LabelSet
+from Image import Image
 
+# base folders
 INPUT_BASE_FOLDER = './data/input/'
 OUTPUT_BASE_FOLDER = './data/output/'
+PARTITION_BASE_FOLDER = './data/partitioned/'
 
+# base folder structure
 RGB_FOLDER = 'rgb/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-def show_examples():
-    filename = "2021_09_holtan_0535"
-    img_rgb = cv2.imread(OUTPUT_BASE_FOLDER + RGB_FOLDER + filename + ".JPG")
-    img_ir = cv2.imread(OUTPUT_BASE_FOLDER + IR_FOLDER + filename + ".JPG")
-    label_lines = helpers.read_label_file_lines(OUTPUT_BASE_FOLDER + LABEL_FOLDER + filename + ".txt")
-    labels = map(lambda label_line: Label.fromLabelLine(label_line, True), label_lines)
+def show_blended_output(filename:str, partition:tuple[int, int]=None):
+    '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
-    helpers.show_image_pair(img_rgb, img_ir, labels)
+    base_folder = OUTPUT_BASE_FOLDER
+    if(partition is not None):
+        base_folder = PARTITION_BASE_FOLDER
+        filename = f"{filename}_p{partition[0]}{partition[1]}"
+
+    rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + filename + ".JPG", is_cropped=True)
+    ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + filename + ".JPG", is_cropped=True)
+    label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + filename + ".txt", is_cropped=True)
+
+    blended_img = np.maximum(rgb_image.img, ir_image.img)
+
+    for label in label_set.labels:
+        blended_img = cv2.rectangle(blended_img, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
+    
+    plt.figure()
+    plt.subplot(2, 3, 1)
+    plt.imshow(rgb_image.img)
+    plt.subplot(2, 3, 4)
+    plt.imshow(ir_image.img)
+    plt.subplot(2, 3, (2,6))
+    plt.imshow(blended_img)
+    # plt.get_current_fig_manager().full_screen_toggle()
+    plt.show()
+
 
 def transform_data():
-    for rgb_filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
-        raw_rgb = cv2.imread(INPUT_BASE_FOLDER + RGB_FOLDER + rgb_filename)
-        cropped_rgb = helpers.crop_img(raw_rgb)
-        cv2.imwrite(OUTPUT_BASE_FOLDER + RGB_FOLDER + rgb_filename, cropped_rgb)
-        print(f"Processed RGB: {rgb_filename}")
+    # for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
+    #     image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
+    #     image = image.crop()
+    #     image.saveToImagePath(OUTPUT_BASE_FOLDER + RGB_FOLDER + filename)
+    #     fileroot = filename.split('.')[0]
+    #     for partition_image in image.partitions():
+    #         partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
+    #         partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_filename)
+    #     print(f"Processed RGB: {fileroot}")
 
-    for ir_filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
-        raw_ir = cv2.imread(INPUT_BASE_FOLDER + IR_FOLDER + ir_filename)
-        transformed_ir = helpers.transform_IR_im_to_vis_coordinate_system(raw_ir)
-        cropped_img = helpers.crop_img(transformed_ir)
-        cv2.imwrite(OUTPUT_BASE_FOLDER + IR_FOLDER + ir_filename, cropped_img)
-        print(f"Processed IR: {ir_filename}")
+    # for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
+    #     image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
+    #     image = image.undistort()
+    #     image = image.crop()
+    #     image.saveToImagePath(OUTPUT_BASE_FOLDER + IR_FOLDER + filename)
+    #     fileroot = filename.split('.')[0]
+    #     for partition_image in image.partitions():
+    #         partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
+    #         partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_filename)
+    #     print(f"Processed IR: {fileroot}")
 
-    for label_filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
-        raw_labels = helpers.read_label_file_lines(INPUT_BASE_FOLDER + LABEL_FOLDER + label_filename)
-        new_labels = []
-        for raw_label in raw_labels:
-            new_label: Label = Label.fromLabelLine(raw_label, False)
-            new_label.crop()
-            if(new_label.area() > 0):
-                new_labels.append(new_label)
-
-        helpers.write_label_file(OUTPUT_BASE_FOLDER + LABEL_FOLDER + label_filename, new_labels)
-        print(f"Processed labelfile: {label_filename}")
+    for filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
+        label_set = LabelSet.loadFromFilePath(INPUT_BASE_FOLDER + LABEL_FOLDER + filename, is_cropped=False)
+        label_set = label_set.crop()
+        label_set.writeToFilePath(OUTPUT_BASE_FOLDER + LABEL_FOLDER + filename)
+        fileroot = filename.split('.')[0]
+        for partition_label_set in label_set.partitions():
+            partition_filename = f"{fileroot}_p{partition_label_set.partition_coordinates[0]}{partition_label_set.partition_coordinates[1]}.txt"
+            partition_label_set.writeToFilePath(PARTITION_BASE_FOLDER + LABEL_FOLDER + partition_filename)
+        print(f"Processed labelfile: {fileroot}")
 
 
 if __name__ == "__main__":
-    show_examples()
-    # transform_data()
+    transform_data()
+    show_blended_output("2021_09_holtan_0535", partition=(1,1))
 
         
