@@ -17,12 +17,15 @@ validation_set_fileroots = GET_VALIDATION_SET_FILEROOTS((4,3))
 
 # Move validation images and labels
 for fileroot in validation_set_fileroots:
-    filename = fileroot + '.JPG'
-    print(PARTITION_BASE_FOLDER + RGB_FOLDER + filename, VALIDATION_BASE_FOLDER + RGB_FOLDER + filename)
-    shutil.move(PARTITION_BASE_FOLDER + RGB_FOLDER + filename, VALIDATION_BASE_FOLDER + RGB_FOLDER)
-    filename = fileroot + '.txt'
-    print(PARTITION_BASE_FOLDER + LABEL_FOLDER + filename, TRAIN_BASE_FOLDER + LABEL_FOLDER + filename)
-    shutil.move(PARTITION_BASE_FOLDER + LABEL_FOLDER + filename, TRAIN_BASE_FOLDER + LABEL_FOLDER)
+    try:
+        filename = fileroot + '.JPG'
+        print(PARTITION_BASE_FOLDER + RGB_FOLDER + filename, VALIDATION_BASE_FOLDER + RGB_FOLDER + filename)
+        shutil.move(PARTITION_BASE_FOLDER + RGB_FOLDER + filename, VALIDATION_BASE_FOLDER + RGB_FOLDER)
+    except:
+        continue
+    # filename = fileroot + '.txt'
+    # print(PARTITION_BASE_FOLDER + LABEL_FOLDER + filename, VALIDATION_BASE_FOLDER + LABEL_FOLDER + filename)
+    # shutil.move(PARTITION_BASE_FOLDER + LABEL_FOLDER + filename, VALIDATION_BASE_FOLDER + LABEL_FOLDER)
 
 
 # for filename in os.listdir(PARTITION_BASE_FOLDER + RGB_FOLDER):
