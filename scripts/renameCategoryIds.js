@@ -5,19 +5,17 @@ import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('./roboflow_images/')
 const LABELS_PATH = path.resolve('./roboflow_labels/')
-const TO_PATH = path.resolve('./output/labels/')
 
 // SCRIPT
 
-const images = await readdir(FROM_PATH)
 const labels = await readdir(LABELS_PATH)
 
-const categoriesConverter = { // THIS IS WITHOUT BROWN
-  '0': '2', // Roboflow black 0 to standard 2
-  '1': '1', // Roboflow gray 1 to standard 1
-  '2': '0', // Roboflow white 2 to standard 0
+const categoriesConverter = { 
+  '0': '0', 
+  '1': '0', 
+  '2': '0', 
+  '3': '0', 
 }
 
 let distribution = {

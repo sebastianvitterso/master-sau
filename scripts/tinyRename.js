@@ -3,7 +3,7 @@ import path from 'path';
 
 // HELPERS
 
-const BASE_PATH = path.resolve('../raw_data/Lønset/RGB_unlabeled/')
+const BASE_PATH = path.resolve('./old_labels/')
 function fullPath(filename) {
   return `${BASE_PATH}\\${filename}`
 }
@@ -13,10 +13,9 @@ function fullPath(filename) {
 const files = (await readdir(BASE_PATH)) //.filter(file => file.includes('hallvard'))
 
 for (const oldName of files) {
-  const newName = oldName.replace('DJI_', '2018_10_lonset_')
+  const newName = oldName.replace('DJI_0', '2021_09_holtan_1')
   
-  console.log(oldName, newName)
-  // continue
+  // console.log(oldName, newName)
   await rename(fullPath(oldName), fullPath(newName))
 }
 
