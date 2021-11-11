@@ -5,13 +5,17 @@ import path from 'path';
 
 // HELPERS
 
-const LABELS_PATH = path.resolve('../data/train/labels/')
+const LABELS_PATH = path.resolve('./roboflow_labels/')
 
+// SCRIPT
 
-const categoriesConverter = { // THIS IS WITHOUT BROWN
-  '0': '2', // Roboflow black 0 to standard 2
-  '1': '1', // Roboflow gray 1 to standard 1
-  '2': '0', // Roboflow white 2 to standard 0
+const labels = await readdir(LABELS_PATH)
+
+const categoriesConverter = { 
+  '0': '0', 
+  '1': '0', 
+  '2': '0', 
+  '3': '0', 
 }
 
 let distribution = {
