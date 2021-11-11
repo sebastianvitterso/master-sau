@@ -1,15 +1,15 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:V100:1
 #SBATCH --account=ie-idi
-#SBATCH --time=02:00:00
+#SBATCH --time=12:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=12000
-#SBATCH --job-name="job.slurm"
+#SBATCH --job-name="YOLOv5 Training for sheep recognition"
 #SBATCH --output=job.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no
-#SBATCH --mail-type=NONE
+#SBATCH --mail-type=END
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
@@ -17,7 +17,7 @@ cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 module purge
 module load fosscuda/2020b
 module load Python/3.8.6-GCCcore-10.2.0
-module load PyTorch/1.7.1-fosscuda-2020b
+# module load PyTorch/1.7.1-fosscuda-2020b
 
 cd ..
 cd yolov5
@@ -25,7 +25,10 @@ pwd
 pip freeze --user | xargs pip uninstall -y
 pip install -r requirements.txt --no-cache-dir
 
-python train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5s.pt --cache --freeze 10 --device 0
+# python train.py --img 1280 --batch 8 --epochs 300 --data sheep.yaml --weights yolov5l6.pt --cache --freeze 10 --device 0
+python train.py --img 1280 --batch 6 --epochs 300 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+
+# python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --device 0,1
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
 
 uname -a

@@ -4,6 +4,7 @@
 
 data/
 raw_data/
+data-partitioned/
 
 !yolov5/data/
 yolov5/data/images
