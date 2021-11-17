@@ -2,12 +2,12 @@
 #SBATCH --partition=GPUQ
 #SBATCH --gres=gpu:V100:1
 #SBATCH --account=ie-idi
-#SBATCH --time=150:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=12000
 #SBATCH --job-name="YOLOv5 Training for sheep recognition"
-#SBATCH --output=job.out
+#SBATCH --output=train.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no
 #SBATCH --mail-type=END
 
@@ -30,7 +30,7 @@ pip install -r requirements.txt --no-cache-dir
 # Train from scratch
 # python train.py --img 1280 --batch 6 --epochs 300 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 # Train from scratch with partitions
-python train.py --img 1280 --batch 6 --epochs 300 --data sheep-cropped.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+python train.py --img 1280 --batch 8 --epochs 300 --data sheep-cropped.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --device 0,1
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
