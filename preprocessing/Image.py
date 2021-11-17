@@ -10,7 +10,7 @@ TRANSFORM_VIS_TO_IR = np.load("./parameters/Transform_vis_to_IR.npy")
 TRANSFORM_IR_TO_VIS = np.load("./parameters/Transform_IR_to_Vis.npy")
 
 class Image:
-    def __init__(self, img:np.ndarray, is_distorted:bool=False, is_cropped:bool=False, partition_coordinates:tuple[int, int]=None):
+    def __init__(self, img:np.ndarray, is_distorted:bool=False, is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
         self.img = img
         self.is_distorted = is_distorted
         self.is_cropped = is_cropped
@@ -22,7 +22,7 @@ class Image:
         return self.__str__()
 
     @classmethod
-    def loadFromImagePath(cls, image_path:str, is_distorted:bool=False, is_cropped:bool=False, partition_coordinates:tuple[int, int]=None):
+    def loadFromImagePath(cls, image_path:str, is_distorted:bool=False, is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
         img = cv2.imread(image_path)
         return cls(img, is_distorted, is_cropped, partition_coordinates)
 

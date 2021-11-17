@@ -53,7 +53,7 @@ class Label():
 
         return f"{self.category} {center_x_relative} {center_y_relative} {width_relative} {height_relative}"
 
-    def crop(self, TOP_LEFT_OFFSET:tuple[int, int], CROP_SIZE:tuple[int, int]):
+    def crop(self, TOP_LEFT_OFFSET:'tuple[int, int]', CROP_SIZE:'tuple[int, int]'):
         top =       min(max(self.top    - TOP_LEFT_OFFSET[1], 0), CROP_SIZE[1]-1)
         bottom =    min(max(self.bottom - TOP_LEFT_OFFSET[1], 0), CROP_SIZE[1]-1)
         left =      min(max(self.left   - TOP_LEFT_OFFSET[0], 0), CROP_SIZE[0]-1)
@@ -69,7 +69,7 @@ class Label():
 
 
 class LabelSet():
-    def __init__(self, labels:List['Label'], is_cropped:bool=False, partition_coordinates:tuple[int, int]=None):
+    def __init__(self, labels:List['Label'], is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
         self.labels = labels
         self.is_cropped = is_cropped
         self.partition_coordinates = partition_coordinates
@@ -91,7 +91,7 @@ class LabelSet():
         with open(file_path, 'w') as file:
             file.write(label_file_text)
 
-    def crop(self, TOP_LEFT_OFFSET:tuple[int, int]=CORNER_TOP_LEFT, CROP_SIZE:tuple[int, int]=CROPPED_SIZE):
+    def crop(self, TOP_LEFT_OFFSET:'tuple[int, int]'=CORNER_TOP_LEFT, CROP_SIZE:'tuple[int, int]'=CROPPED_SIZE):
         # CORNER_TOP_LEFT, CROPPED_SIZE
         assert self.partition_coordinates is None, "Don't crop a partition label-set!"
 

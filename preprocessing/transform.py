@@ -13,16 +13,16 @@ from Label import LabelSet
 from Image import Image
 
 # base folders
-INPUT_BASE_FOLDER = './data/raw/'
-CROPPED_BASE_FOLDER = './data/cropped/'
-PARTITION_BASE_FOLDER = './data/partitioned/'
+INPUT_BASE_FOLDER = '../data/validation/'
+CROPPED_BASE_FOLDER = '../data-cropped/validation/'
+PARTITION_BASE_FOLDER = '../data-partitioned/train/'
 
 # base folder structure
-RGB_FOLDER = 'rgb/'
+RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-def show_blended_output(filename:str, partition:tuple[int, int]=None):
+def show_blended_output(filename:str, partition:'tuple[int, int]'=None):
     '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
     base_folder = CROPPED_BASE_FOLDER
@@ -55,33 +55,33 @@ def show_blended_output(filename:str, partition:tuple[int, int]=None):
 def transform_data():
     for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
         image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
-        # image = image.crop()
-        # image.saveToImagePath(CROPPED_BASE_FOLDER + RGB_FOLDER + filename)
+        image = image.crop()
+        image.saveToImagePath(CROPPED_BASE_FOLDER + RGB_FOLDER + filename)
         fileroot = filename.split('.')[0]
-        for partition_image in image.partitions():
-            partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
-            partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_filename)
+        # for partition_image in image.partitions():
+        #     partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
+        #     partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_filename)
         print(f"Processed RGB: {fileroot}")
 
-    # for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
-    #     image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
-    #     image = image.undistort()
-    #     image = image.crop()
-    #     image.saveToImagePath(OUTPUT_BASE_FOLDER + IR_FOLDER + filename)
-    #     fileroot = filename.split('.')[0]
-    #     for partition_image in image.partitions():
-    #         partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
-    #         partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_filename)
-    #     print(f"Processed IR: {fileroot}")
+    for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
+        image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
+        image = image.undistort()
+        image = image.crop()
+        image.saveToImagePath(CROPPED_BASE_FOLDER + IR_FOLDER + filename)
+        fileroot = filename.split('.')[0]
+        # for partition_image in image.partitions():
+        #     partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
+        #     partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_filename)
+        print(f"Processed IR: {fileroot}")
 
     for filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
         label_set = LabelSet.loadFromFilePath(INPUT_BASE_FOLDER + LABEL_FOLDER + filename, is_cropped=False)
-        # label_set = label_set.crop()
-        # label_set.writeToFilePath(CROPPED_BASE_FOLDER + LABEL_FOLDER + filename)
+        label_set = label_set.crop()
+        label_set.writeToFilePath(CROPPED_BASE_FOLDER + LABEL_FOLDER + filename)
         fileroot = filename.split('.')[0]
-        for partition_label_set in label_set.partitions():
-            partition_filename = f"{fileroot}_p{partition_label_set.partition_coordinates[0]}{partition_label_set.partition_coordinates[1]}.txt"
-            partition_label_set.writeToFilePath(PARTITION_BASE_FOLDER + LABEL_FOLDER + partition_filename)
+        # for partition_label_set in label_set.partitions():
+        #     partition_filename = f"{fileroot}_p{partition_label_set.partition_coordinates[0]}{partition_label_set.partition_coordinates[1]}.txt"
+        #     partition_label_set.writeToFilePath(PARTITION_BASE_FOLDER + LABEL_FOLDER + partition_filename)
         print(f"Processed labelfile: {fileroot}")
 
 

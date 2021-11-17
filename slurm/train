@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sbatch train.slurm
+rm train.out
+tail -F train.out

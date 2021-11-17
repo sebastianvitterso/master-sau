@@ -17,7 +17,7 @@ CROPPED_SIZE = (
     CORNER_BOTTOM_RIGHT[1] - CORNER_TOP_LEFT[1],
 )
 
-def GET_PARTITION_TOP_LEFT_CORNER(x_coord, y_coord, is_cropped=False) -> tuple[int, int]:
+def GET_PARTITION_TOP_LEFT_CORNER(x_coord, y_coord, is_cropped=False) -> 'tuple[int, int]':
     box = PARTITION_TOP_LEFT_CORNERS_CROPPED if is_cropped else PARTITION_TOP_LEFT_CORNERS_RAW
     return box[y_coord][x_coord]
 
@@ -48,7 +48,7 @@ VALIDATION_SET = (
     ('2021_09_holtan_', (2201, 2223)),
 )
 
-def GET_VALIDATION_SET_FILEROOTS(partitioning_size:tuple[int,int]=None) -> List[str]:
+def GET_VALIDATION_SET_FILEROOTS(partitioning_size:'tuple[int,int]'=None) -> List[str]:
     validation_set = []
 
     partitioning_set = ['']
