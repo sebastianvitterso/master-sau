@@ -79,7 +79,7 @@ class Detect(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-class Model(nn.Module):
+class FusionModel(nn.Module):
     def __init__(self, cfg='models/yolov5s.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
         super().__init__()
         if isinstance(cfg, dict):
@@ -102,6 +102,9 @@ class Model(nn.Module):
         self.backbone_ir = deepcopy(self.backbone_rgb)
         self.names = [str(i) for i in range(self.yaml['nc'])]  # default names
         self.inplace = self.yaml.get('inplace', True)
+        self.dimension_reducer4 = nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer6 = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer9 = nn.Conv2d(1024, 512, kernel_size=1, stride=1, padding=0, bias=False)
 
         # Build strides, anchors
         m = self.head[-1]  # Detect()
@@ -138,7 +141,6 @@ class Model(nn.Module):
         return torch.cat(y, 1), None  # augmented inference, train
 
     def _forward_once(self, x_rgb, x_ir, profile=False, visualize=False):
-        print('FORWARD')
         y_rgb, y_ir, dt = [], [], []  # outputs
 
         # Run backbone for RGB and IR specific
@@ -160,20 +162,21 @@ class Model(nn.Module):
 
         y = []
         # Run fusion layer on all saved 
-        for xi_rgb, xi_ir in zip(y_rgb, y_ir):
+        for i, (xi_rgb, xi_ir) in enumerate(zip(y_rgb, y_ir)):
             if (xi_rgb == None or xi_ir == None):
                 y.append(None)
                 continue
             xi = torch.cat((xi_rgb, xi_ir), dim=1)
-            self.dimension_reducer = nn.Conv2d(xi.shape[1], int(xi.shape[1]/2), kernel_size=1, stride=1, padding=0, bias=False)
-            xi = self.dimension_reducer(xi)
+            if i == 4:
+                xi = self.dimension_reducer4(xi)
+            if i == 6:
+                xi = self.dimension_reducer6(xi)
             y.append(xi)
 
 
         # Run fusion layer on most recent x
         x = torch.cat((x_rgb, x_ir), dim=1)
-        self.dimension_reducer = nn.Conv2d(1024, 512, kernel_size=1, stride=1, padding=0,bias=False)
-        x = self.dimension_reducer(x)
+        x = self.dimension_reducer9(x)
 
         # Run through head
         for m in self.head:
@@ -334,7 +337,7 @@ if __name__ == '__main__':
     device = select_device(opt.device)
 
     # Create model
-    model = Model(opt.cfg).to(device)
+    model = FusionModel(opt.cfg).to(device)
     model.train()
 
     # Profile

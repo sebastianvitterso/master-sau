@@ -108,8 +108,8 @@ def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=Non
                                       prefix=prefix)
 
     batch_size = min(batch_size, len(dataset))
-    #nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, workers])  # number of workers
-    nw = 1  # number of workers
+    # nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, workers])  # number of workers
+    nw = 1  # TODO: This should probably be increased :o
     sampler = torch.utils.data.distributed.DistributedSampler(dataset) if rank != -1 else None
     loader = torch.utils.data.DataLoader if image_weights else InfiniteDataLoader
     # Use torch.utils.data.DataLoader() if dataset.properties will update during training else InfiniteDataLoader()
@@ -365,6 +365,11 @@ def img2label_paths(img_paths):
     sa, sb = os.sep + 'images' + os.sep, os.sep + 'labels' + os.sep  # /images/, /labels/ substrings
     return [sb.join(x.rsplit(sa, 1)).rsplit('.', 1)[0] + '.txt' for x in img_paths]
 
+def rgb2ir_paths(img_paths):
+    # Define label paths as a function of image paths
+    sa, sb = os.sep + 'images' + os.sep, os.sep + 'ir' + os.sep  # /images/, /labels/ substrings
+    return [sb.join(x.rsplit(sa, 1)).rsplit('.', 1)[0] + '.JPG' for x in img_paths]
+
 
 class LoadImagesAndLabels(Dataset):  # for training/testing
     cache_version = 0.5  # dataset labels *.cache version
@@ -372,7 +377,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
         self.img_size = img_size
-        self.augment = augment
+        self.augment = augment and False # Should probably be removed
         self.hyp = hyp
         self.image_weights = image_weights
         self.rect = False if image_weights else rect
@@ -428,7 +433,9 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.labels = list(labels)
         self.shapes = np.array(shapes, dtype=np.float64)
         self.img_files = list(cache.keys())  # update
+        self.ir_files = rgb2ir_paths(self.img_files)
         self.label_files = img2label_paths(cache.keys())  # update
+
         if single_cls:
             for x in self.labels:
                 x[:, 0] = 0
@@ -447,6 +454,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             ar = s[:, 1] / s[:, 0]  # aspect ratio
             irect = ar.argsort()
             self.img_files = [self.img_files[i] for i in irect]
+            self.ir_files = [self.ir_files[i] for i in irect]
             self.label_files = [self.label_files[i] for i in irect]
             self.labels = [self.labels[i] for i in irect]
             self.shapes = s[irect]  # wh
@@ -471,6 +479,9 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 self.im_cache_dir = Path(Path(self.img_files[0]).parent.as_posix() + '_npy')
                 self.img_npy = [self.im_cache_dir / Path(f).with_suffix('.npy').name for f in self.img_files]
                 self.im_cache_dir.mkdir(parents=True, exist_ok=True)
+                # self.ir_cache_dir = Path(Path(self.ir_files[0]).parent.as_posix() + '_npy')
+                # self.ir_npy = [self.ir_cache_dir / Path(f).with_suffix('.npy').name for f in self.ir_files]
+                # self.ir_cache_dir.mkdir(parents=True, exist_ok=True)
             gb = 0  # Gigabytes of cached images
             self.img_hw0, self.img_hw = [None] * n, [None] * n
             results = ThreadPool(NUM_THREADS).imap(lambda x: load_image(*x), zip(repeat(self), range(n)))
@@ -535,7 +546,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         index = self.indices[index]  # linear, shuffled, or image_weights
 
         hyp = self.hyp
-        mosaic = self.mosaic and random.random() < hyp['mosaic']
+        mosaic = self.mosaic and random.random() < hyp['mosaic'] and False
         if mosaic:
             # Load mosaic
             img, labels = load_mosaic(self, index)
@@ -549,10 +560,14 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             # Load image
             img, (h0, w0), (h, w) = load_image(self, index)
 
+            ir, (ir_h0, ir_w0), (ir_h, ir_w) = load_ir(self, index)
+
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
             img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment)
             shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
+            
+            ir, ir_ratio, ir_pad = letterbox(ir, shape, auto=False, scaleup=self.augment)
 
             labels = self.labels[index].copy()
             if labels.size:  # normalized xywh to pixel xyxy format
@@ -600,15 +615,18 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         # Convert
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
+        
+        ir = ir.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        ir = np.ascontiguousarray(ir)
 
-        return torch.from_numpy(img), labels_out, self.img_files[index], shapes
+        return torch.from_numpy(img), torch.from_numpy(ir), labels_out, self.img_files[index], shapes
 
     @staticmethod
     def collate_fn(batch):
-        img, label, path, shapes = zip(*batch)  # transposed
+        img, ir, label, path, shapes = zip(*batch)  # transposed
         for i, l in enumerate(label):
             l[:, 0] = i  # add target image index for build_targets()
-        return torch.stack(img, 0), torch.cat(label, 0), path, shapes
+        return torch.stack(img, 0), torch.stack(ir, 0), torch.cat(label, 0), path, shapes
 
     @staticmethod
     def collate_fn4(batch):
@@ -657,6 +675,18 @@ def load_image(self, i):
         return im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
     else:
         return self.imgs[i], self.img_hw0[i], self.img_hw[i]  # im, hw_original, hw_resized
+
+def load_ir(self, i):
+    # loads 1 image from dataset index 'i', returns im, original hw, resized hw
+    path = self.ir_files[i]
+    im = cv2.imread(path)  # BGR
+    assert im is not None, 'Image Not Found ' + path
+    h0, w0 = im.shape[:2]  # orig hw
+    r = self.img_size / max(h0, w0)  # ratio
+    if r != 1:  # if sizes are not equal
+        im = cv2.resize(im, (int(w0 * r), int(h0 * r)),
+                        interpolation=cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR)
+    return im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
 
 
 def load_mosaic(self, index):
