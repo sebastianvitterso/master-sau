@@ -4,6 +4,8 @@
 
 data/
 raw_data/
+data-partitioned/
+data-cropped/
 
 !yolov5/data/
 yolov5/data/images
@@ -34,6 +36,8 @@ node_modules
 *.avi
 *.data
 *.json
+!package.json
+!package-lock.json
 *.cfg
 !cfg/yolov3*.cfg
 
