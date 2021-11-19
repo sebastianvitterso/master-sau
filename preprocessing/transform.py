@@ -13,8 +13,8 @@ from LabelSet import LabelSet
 from Image import Image
 
 # base folders
-INPUT_BASE_FOLDER = '../data/validation/'
-CROPPED_BASE_FOLDER = '../data-cropped/validation/'
+INPUT_BASE_FOLDER = '../data/train/'
+CROPPED_BASE_FOLDER = '../data-cropped/train/'
 PARTITION_BASE_FOLDER = '../data-partitioned/train/'
 
 # base folder structure
@@ -22,18 +22,18 @@ RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-def show_blended_output(filename:str, partition:'tuple[int, int]'=None, use_ir:bool=False):
+def show_blended_output(fileroot:str, partition:'tuple[int, int]'=None, use_ir:bool=False):
     '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
     base_folder = CROPPED_BASE_FOLDER if use_ir else INPUT_BASE_FOLDER
     if(partition is not None):
         base_folder = PARTITION_BASE_FOLDER
-        filename = f"{filename}_p{partition[0]}{partition[1]}"
+        fileroot = f"{fileroot}_p{partition[0]}{partition[1]}"
 
-    rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + filename + ".JPG", is_cropped=use_ir, partition_coordinates=partition)
+    rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition)
     if(use_ir):
-        ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + filename + ".JPG", is_cropped=use_ir, partition_coordinates=partition)
-    label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + filename + ".txt", is_cropped=use_ir, partition_coordinates=partition)
+        ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition)
+    label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition)
 
     if(use_ir):
         blended_img = np.maximum(rgb_image.img, ir_image.img)
@@ -100,7 +100,7 @@ def transform_data(use_ir:bool=True, partition:bool=True):
 
 
 if __name__ == "__main__":
-    transform_data()
-    show_blended_output("2021_09_holtan_0535", partition=(2,1))
+    # transform_data()
+    show_blended_output("2021_09_holtan_0535", partition=(1,1), use_ir=True)
 
         
