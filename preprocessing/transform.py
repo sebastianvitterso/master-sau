@@ -58,49 +58,70 @@ def show_blended_output(fileroot:str, partition:'tuple[int, int]'=None, use_ir:b
 
 
 
-def transform_data(use_ir:bool=True, partition:bool=True):
+def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=False):
     assert use_ir or partition, "Why even run this thing, if you're not gonna use_ir or partition..?"
 
-    for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
-        image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
-        if(use_ir):
-            image = image.crop()
-            image.saveToImagePath(CROPPED_BASE_FOLDER + RGB_FOLDER + filename)
-        fileroot = filename.split('.')[0]
-        if(partition):
-            for partition_image in image.partitions():
-                partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
-                partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_filename)
-        print(f"Processed RGB: {fileroot}")
-
-    if(use_ir):
-        for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
-            image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
-            image = image.undistort()
-            image = image.crop()
-            image.saveToImagePath(CROPPED_BASE_FOLDER + IR_FOLDER + filename)
-            fileroot = filename.split('.')[0]
-            if(partition):
-                for partition_image in image.partitions():
-                    partition_filename = f"{fileroot}_p{partition_image.partition_coordinates[0]}{partition_image.partition_coordinates[1]}.JPG"
-                    partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_filename)
-            print(f"Processed IR: {fileroot}")
+    fileroots = set() # Look-up for fileroots we want to save. Not relevent if `keep_empty=True`
 
     for filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
+        fileroot = filename.split('.')[0]
         label_set = LabelSet.loadFromFilePath(INPUT_BASE_FOLDER + LABEL_FOLDER + filename, is_cropped=False)
         if(use_ir):
             label_set = label_set.crop()
-            label_set.writeToFilePath(CROPPED_BASE_FOLDER + LABEL_FOLDER + filename)
-        fileroot = filename.split('.')[0]
+            if (len(label_set.labels) > 0 or keep_empty) and not partition:
+                fileroots.add(fileroot)
+                label_set.writeToFilePath(CROPPED_BASE_FOLDER + LABEL_FOLDER + fileroot + '.txt')
+
         if(partition):
             for partition_label_set in label_set.partitions():
-                partition_filename = f"{fileroot}_p{partition_label_set.partition_coordinates[0]}{partition_label_set.partition_coordinates[1]}.txt"
-                partition_label_set.writeToFilePath(PARTITION_BASE_FOLDER + LABEL_FOLDER + partition_filename)
+                if len(partition_label_set.labels) > 0 or keep_empty:
+                    x, y = partition_label_set.partition_coordinates
+                    partition_fileroot = f"{fileroot}_p{x}{y}"
+                    fileroots.add(partition_fileroot)
+                    partition_label_set.writeToFilePath(PARTITION_BASE_FOLDER + LABEL_FOLDER + partition_fileroot + '.txt')
+
         print(f"Processed labelfile: {fileroot}")
+
+    for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
+        fileroot = filename.split('.')[0]
+        image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
+        if(use_ir):
+            image = image.crop()
+            if(fileroot in fileroots or keep_empty):
+                image.saveToImagePath(CROPPED_BASE_FOLDER + RGB_FOLDER + filename)
+
+        if(partition):
+            for partition_image in image.partitions():
+                x, y = partition_image.partition_coordinates
+                partition_fileroot = f"{fileroot}_p{x}{y}"
+                if(partition_fileroot in fileroots or keep_empty):
+                    partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_fileroot + '.JPG')
+
+        print(f"Processed RGB: {fileroot}")
+
+
+    if(use_ir):
+        for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
+            fileroot = filename.split('.')[0]
+            image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
+            image = image.undistort()
+            image = image.crop()
+            if(fileroot in fileroots or keep_empty):
+                image.saveToImagePath(CROPPED_BASE_FOLDER + IR_FOLDER + filename)
+
+            if(partition):
+                for partition_image in image.partitions():
+                    x, y = partition_image.partition_coordinates
+                    partition_fileroot = f"{fileroot}_p{x}{y}"
+                    if(partition_fileroot in fileroots or keep_empty):
+                        partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_fileroot + '.JPG')
+
+            print(f"Processed IR: {fileroot}")
+
 
 
 if __name__ == "__main__":
-    # transform_data()
-    show_blended_output("2021_09_holtan_0535", partition=(1,1), use_ir=True)
+    transform_data(use_ir=True, partition=True, keep_empty=True)
+    # show_blended_output("2021_09_holtan_0535", partition=(1,1), use_ir=True)
 
         
