@@ -377,7 +377,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
         self.img_size = img_size
-        self.augment = augment and False # Should probably be removed
+        self.augment = augment
         self.hyp = hyp
         self.image_weights = image_weights
         self.rect = False if image_weights else rect
@@ -546,15 +546,15 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         index = self.indices[index]  # linear, shuffled, or image_weights
 
         hyp = self.hyp
-        mosaic = self.mosaic and random.random() < hyp['mosaic'] and False
+        mosaic = self.mosaic and random.random() < hyp['mosaic']
         if mosaic:
             # Load mosaic
-            img, labels = load_mosaic(self, index)
+            img, ir, labels = load_mosaic(self, index)
             shapes = None
 
             # MixUp augmentation
             if random.random() < hyp['mixup']:
-                img, labels = mixup(img, labels, *load_mosaic(self, random.randint(0, self.n - 1)))
+                img, ir, labels = mixup(img, ir, labels, *load_mosaic(self, random.randint(0, self.n - 1)))
 
         else:
             # Load image
@@ -574,7 +574,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1])
 
             if self.augment:
-                img, labels = random_perspective(img, labels,
+                img, ir, labels = random_perspective(img, ir, labels,
                                                  degrees=hyp['degrees'],
                                                  translate=hyp['translate'],
                                                  scale=hyp['scale'],
@@ -587,21 +587,23 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         if self.augment:
             # Albumentations
-            img, labels = self.albumentations(img, labels)
+            img, ir, labels = self.albumentations(img, ir, labels)
             nl = len(labels)  # update after albumentations
 
             # HSV color-space
-            augment_hsv(img, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
+            augment_hsv(img, ir, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
 
             # Flip up-down
             if random.random() < hyp['flipud']:
                 img = np.flipud(img)
+                ir = np.flipud(ir)
                 if nl:
                     labels[:, 2] = 1 - labels[:, 2]
 
             # Flip left-right
             if random.random() < hyp['fliplr']:
                 img = np.fliplr(img)
+                ir = np.fliplr(ir)
                 if nl:
                     labels[:, 1] = 1 - labels[:, 1]
 
@@ -630,9 +632,9 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
     @staticmethod
     def collate_fn4(batch):
-        img, label, path, shapes = zip(*batch)  # transposed
+        img, ir, label, path, shapes = zip(*batch)  # transposed
         n = len(shapes) // 4
-        img4, label4, path4, shapes4 = [], [], path[:n], shapes[:n]
+        img4, ir4, label4, path4, shapes4 = [], [], [], path[:n], shapes[:n]
 
         ho = torch.tensor([[0., 0, 0, 1, 0, 0]])
         wo = torch.tensor([[0., 0, 1, 0, 0, 0]])
@@ -642,17 +644,21 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             if random.random() < 0.5:
                 im = F.interpolate(img[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[
                     0].type(img[i].type())
+                im_ir = F.interpolate(ir[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[
+                    0].type(ir[i].type())
                 l = label[i]
             else:
                 im = torch.cat((torch.cat((img[i], img[i + 1]), 1), torch.cat((img[i + 2], img[i + 3]), 1)), 2)
+                im_ir = torch.cat((torch.cat((ir[i], ir[i + 1]), 1), torch.cat((ir[i + 2], ir[i + 3]), 1)), 2)
                 l = torch.cat((label[i], label[i + 1] + ho, label[i + 2] + wo, label[i + 3] + ho + wo), 0) * s
             img4.append(im)
+            ir4.append(im_ir)
             label4.append(l)
 
         for i, l in enumerate(label4):
             l[:, 0] = i  # add target image index for build_targets()
 
-        return torch.stack(img4, 0), torch.cat(label4, 0), path4, shapes4
+        return torch.stack(img4, 0), torch.stack(ir4, 0), torch.cat(label4, 0), path4, shapes4
 
 
 # Ancillary functions --------------------------------------------------------------------------------------------------
@@ -692,7 +698,7 @@ def load_ir(self, i):
 def load_mosaic(self, index):
     # loads images in a 4-mosaic
 
-    labels4, segments4 = [], []
+    labels4, segments4, ir_segments4 = [], [], []
     s = self.img_size
     yc, xc = [int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border]  # mosaic center x, y
     indices = [index] + random.choices(self.indices, k=3)  # 3 additional image indices
@@ -700,10 +706,12 @@ def load_mosaic(self, index):
     for i, index in enumerate(indices):
         # Load image
         img, _, (h, w) = load_image(self, index)
+        ir, _, (ir_h, ir_w) = load_ir(self, index)
 
         # place img in img4
         if i == 0:  # top left
             img4 = np.full((s * 2, s * 2, img.shape[2]), 114, dtype=np.uint8)  # base image with 4 tiles
+            ir4 = np.full((s * 2, s * 2, img.shape[2]), 114, dtype=np.uint8)  # base image with 4 tiles
             x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
             x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
         elif i == 1:  # top right
@@ -717,6 +725,7 @@ def load_mosaic(self, index):
             x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
 
         img4[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]  # img4[ymin:ymax, xmin:xmax]
+        ir4[y1a:y2a, x1a:x2a] = ir[y1b:y2b, x1b:x2b]  
         padw = x1a - x1b
         padh = y1a - y1b
 
@@ -735,8 +744,8 @@ def load_mosaic(self, index):
     # img4, labels4 = replicate(img4, labels4)  # replicate
 
     # Augment
-    img4, labels4, segments4 = copy_paste(img4, labels4, segments4, p=self.hyp['copy_paste'])
-    img4, labels4 = random_perspective(img4, labels4, segments4,
+    img4, ir4, labels4, segments4 = copy_paste(img4, ir4, labels4, segments4, p=self.hyp['copy_paste'])
+    img4, ir4, labels4 = random_perspective(img4, ir4, labels4, segments4,
                                        degrees=self.hyp['degrees'],
                                        translate=self.hyp['translate'],
                                        scale=self.hyp['scale'],
@@ -744,7 +753,7 @@ def load_mosaic(self, index):
                                        perspective=self.hyp['perspective'],
                                        border=self.mosaic_border)  # border to remove
 
-    return img4, labels4
+    return img4, ir4, labels4
 
 
 def load_mosaic9(self, index):

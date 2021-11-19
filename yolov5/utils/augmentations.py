@@ -38,18 +38,20 @@ class Albumentations:
         except Exception as e:
             logging.info(colorstr('albumentations: ') + f'{e}')
 
-    def __call__(self, im, labels, p=1.0):
+    def __call__(self, im, ir, labels, p=1.0):
         if self.transform and random.random() < p:
             new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
-            im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
-        return im, labels
+            ir_new = self.transform(image=ir, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
+            im, ir, labels = new['image'], ir_new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+        return im, ir, labels
 
 
-def augment_hsv(im, hgain=0.5, sgain=0.5, vgain=0.5):
+def augment_hsv(im, ir, hgain=0.5, sgain=0.5, vgain=0.5):
     # HSV color-space augmentation
     if hgain or sgain or vgain:
         r = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain] + 1  # random gains
         hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
+        ir_hue, ir_sat, ir_val = cv2.split(cv2.cvtColor(ir, cv2.COLOR_BGR2HSV))
         dtype = im.dtype  # uint8
 
         x = np.arange(0, 256, dtype=r.dtype)
@@ -58,7 +60,9 @@ def augment_hsv(im, hgain=0.5, sgain=0.5, vgain=0.5):
         lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
 
         im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
+        ir_hsv = cv2.merge((cv2.LUT(ir_hue, lut_hue), cv2.LUT(ir_sat, lut_sat), cv2.LUT(ir_val, lut_val)))
         cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR, dst=im)  # no return needed
+        cv2.cvtColor(ir_hsv, cv2.COLOR_HSV2BGR, dst=ir)  # no return needed
 
 
 def hist_equalize(im, clahe=True, bgr=False):
@@ -122,7 +126,7 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleF
     return im, ratio, (dw, dh)
 
 
-def random_perspective(im, targets=(), segments=(), degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0,
+def random_perspective(im, ir, targets=(), segments=(), degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0,
                        border=(0, 0)):
     # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
     # targets = [cls, xyxy]
@@ -163,8 +167,10 @@ def random_perspective(im, targets=(), segments=(), degrees=10, translate=.1, sc
     if (border[0] != 0) or (border[1] != 0) or (M != np.eye(3)).any():  # image changed
         if perspective:
             im = cv2.warpPerspective(im, M, dsize=(width, height), borderValue=(114, 114, 114))
+            ir = cv2.warpPerspective(ir, M, dsize=(width, height), borderValue=(114, 114, 114))
         else:  # affine
             im = cv2.warpAffine(im, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+            ir = cv2.warpAffine(ir, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
 
     # Visualize
     # import matplotlib.pyplot as plt
@@ -208,15 +214,16 @@ def random_perspective(im, targets=(), segments=(), degrees=10, translate=.1, sc
         targets = targets[i]
         targets[:, 1:5] = new[i]
 
-    return im, targets
+    return im, ir, targets
 
 
-def copy_paste(im, labels, segments, p=0.5):
+def copy_paste(im, ir, labels, segments, p=0.5):
     # Implement Copy-Paste augmentation https://arxiv.org/abs/2012.07177, labels as nx5 np.array(cls, xyxy)
     n = len(segments)
     if p and n:
         h, w, c = im.shape  # height, width, channels
         im_new = np.zeros(im.shape, np.uint8)
+        ir_new = np.zeros(ir.shape, np.uint8)
         for j in random.sample(range(n), k=round(p * n)):
             l, s = labels[j], segments[j]
             box = w - l[3], l[2], w - l[1], l[4]
@@ -225,14 +232,20 @@ def copy_paste(im, labels, segments, p=0.5):
                 labels = np.concatenate((labels, [[l[0], *box]]), 0)
                 segments.append(np.concatenate((w - s[:, 0:1], s[:, 1:2]), 1))
                 cv2.drawContours(im_new, [segments[j].astype(np.int32)], -1, (255, 255, 255), cv2.FILLED)
+                cv2.drawContours(ir_new, [segments[j].astype(np.int32)], -1, (255, 255, 255), cv2.FILLED)
 
         result = cv2.bitwise_and(src1=im, src2=im_new)
         result = cv2.flip(result, 1)  # augment segments (flip left-right)
         i = result > 0  # pixels to replace
         # i[:, :] = result.max(2).reshape(h, w, 1)  # act over ch
         im[i] = result[i]  # cv2.imwrite('debug.jpg', im)  # debug
+        
+        ir_result = cv2.bitwise_and(src1=ir, src2=ir_new)
+        ir_result = cv2.flip(ir_result, 1)  # augment segments (flip left-right)
+        i = ir_result > 0  # pixels to replace
+        ir[i] = ir_result[i]  # cv2.imwrite('debug.jpg', im)  # debug
 
-    return im, labels, segments
+    return im, ir, labels, segments
 
 
 def cutout(im, labels, p=0.5):
@@ -262,12 +275,13 @@ def cutout(im, labels, p=0.5):
     return labels
 
 
-def mixup(im, labels, im2, labels2):
+def mixup(im, ir, labels, im2, ir2, labels2):
     # Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf
     r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
     im = (im * r + im2 * (1 - r)).astype(np.uint8)
+    ir = (ir * r + ir2 * (1 - r)).astype(np.uint8)
     labels = np.concatenate((labels, labels2), 0)
-    return im, labels
+    return im, ir, labels
 
 
 def box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1, eps=1e-16):  # box1(4,n), box2(4,n)

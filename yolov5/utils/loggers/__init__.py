@@ -80,6 +80,8 @@ class Loggers():
             if ni < 3:
                 f = self.save_dir / f'train_batch{ni}.jpg'  # filename
                 Thread(target=plot_images, args=(imgs, targets, paths, f), daemon=True).start()
+                f = self.save_dir / f'train_batch{ni}_ir.jpg'  # filename
+                Thread(target=plot_images, args=(irs, targets, paths, f), daemon=True).start()
             if self.wandb and ni == 10:
                 files = sorted(self.save_dir.glob('train*.jpg'))
                 self.wandb.log({'Mosaics': [wandb.Image(str(f), caption=f.name) for f in files if f.exists()]})
