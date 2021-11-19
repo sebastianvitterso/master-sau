@@ -81,6 +81,7 @@ class Detect(nn.Module):
 
 class FusionModel(nn.Module):
     def __init__(self, cfg='models/yolov5s.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+        cfg='models/hub/yolov5l6.yaml' # TODO: This should not be here probably
         super().__init__()
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
@@ -98,13 +99,14 @@ class FusionModel(nn.Module):
         if anchors:
             LOGGER.info(f'Overriding model.yaml anchors with anchors={anchors}')
             self.yaml['anchors'] = round(anchors)  # override yaml value
-        self.backbone_rgb, self.head, self.save = parse_model(deepcopy(self.yaml), ch=[ch])  # model, savelist
+        self.backbone_rgb, self.head, self.save, model_ch = parse_model(deepcopy(self.yaml), ch=[ch])  # model, savelist
         self.backbone_ir = deepcopy(self.backbone_rgb)
         self.names = [str(i) for i in range(self.yaml['nc'])]  # default names
         self.inplace = self.yaml.get('inplace', True)
-        self.dimension_reducer4 = nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0, bias=False)
-        self.dimension_reducer6 = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0, bias=False)
-        self.dimension_reducer9 = nn.Conv2d(1024, 512, kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer4 = nn.Conv2d(model_ch[4]*2, model_ch[4], kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer6 = nn.Conv2d(model_ch[6]*2, model_ch[6], kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer8 = nn.Conv2d(model_ch[8]*2, model_ch[8], kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer11 = nn.Conv2d(model_ch[11]*2, model_ch[11], kernel_size=1, stride=1, padding=0, bias=False)
 
         # Build strides, anchors
         m = self.head[-1]  # Detect()
@@ -171,12 +173,14 @@ class FusionModel(nn.Module):
                 xi = self.dimension_reducer4(xi)
             if i == 6:
                 xi = self.dimension_reducer6(xi)
+            if i == 8:
+                xi = self.dimension_reducer8(xi)
             y.append(xi)
 
 
         # Run fusion layer on most recent x
         x = torch.cat((x_rgb, x_ir), dim=1)
-        x = self.dimension_reducer9(x)
+        x = self.dimension_reducer11(x)
 
         # Run through head
         for m in self.head:
@@ -322,7 +326,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         if i == 0:
             ch = []
         ch.append(c2)
-    return nn.Sequential(*backbone), nn.Sequential(*head), sorted(save)
+    return nn.Sequential(*backbone), nn.Sequential(*head), sorted(save), ch
 
 
 if __name__ == '__main__':
