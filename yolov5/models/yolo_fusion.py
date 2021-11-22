@@ -251,10 +251,10 @@ class FusionModel(nn.Module):
     #     for m in self.model.modules():
     #         if type(m) is Bottleneck:
     #             LOGGER.info('%10.3g' % (m.w.detach().sigmoid() * 2))  # shortcut weights
-
     def fuse(self):  # fuse model Conv2d() + BatchNorm2d() layers
         LOGGER.info('Fusing layers... ')
-        for m in self.backbone_rgb.modules() + self.backbone_ir.modules() + self.head.modules():
+        from itertools import chain
+        for m in chain(self.backbone_rgb.modules(), self.backbone_ir.modules(), self.head.modules()):
             if isinstance(m, (Conv, DWConv)) and hasattr(m, 'bn'):
                 m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
                 delattr(m, 'bn')  # remove batchnorm

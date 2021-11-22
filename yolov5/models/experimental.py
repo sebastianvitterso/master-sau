@@ -85,9 +85,9 @@ class Ensemble(nn.ModuleList):
         return y, None  # inference, train output
 
 
-def attempt_load(weights, map_location=None, inplace=True, fuse=False):
-    from models.yolo import Detect, Model
-
+def attempt_load(weights, map_location=None, inplace=True, fuse=True):
+    from models.yolo_fusion import Detect, FusionModel
+    
     # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
     model = Ensemble()
     print(type(weights))
@@ -101,7 +101,7 @@ def attempt_load(weights, map_location=None, inplace=True, fuse=False):
 
     # Compatibility updates
     for m in model.modules():
-        if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, Detect, Model]:
+        if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, Detect, FusionModel]:
             m.inplace = inplace  # pytorch 1.7.0 compatibility
         elif type(m) is Conv:
             m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility

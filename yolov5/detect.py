@@ -56,6 +56,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         ):
+
+    # TODO: Remove local debugging 
+    # weights = ROOT / 'fusion.pt'
+    # source=ROOT / '../data/train/images'
+
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -77,40 +82,40 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     pt, onnx, tflite, pb, saved_model = (suffix == x for x in suffixes)  # backend booleans
     stride, names = 64, [f'class{i}' for i in range(1000)]  # assign defaults
     if pt:
-        # model = attempt_load(weights, map_location=device)  # load FP32 model
-        from models.yolo import Model, Detect
-        from models.common import Conv
-        from torch import nn
+        model = attempt_load(weights, map_location=device)  # load FP32 model
+        # from models.yolo import Model, Detect
+        # from models.common import Conv
+        # from torch import nn
 
 
-        yolov5 = torch.load(w)['model'].float().eval()
-        for m in yolov5.modules():
-            if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, Detect, Model]:
-                m.inplace = True  # pytorch 1.7.0 compatibility
-            elif type(m) is Conv:
-                m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
+        # yolov5 = torch.load(w)['model'].float().eval()
+        # for m in yolov5.modules():
+        #     if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, Detect, Model]:
+        #         m.inplace = True  # pytorch 1.7.0 compatibility
+        #     elif type(m) is Conv:
+        #         m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
 
-        # yolov5.inplace = True  # pytorch 1.7.0 compatibility
+        # # yolov5.inplace = True  # pytorch 1.7.0 compatibility
 
-        # from models.yolo_fusion import Model
-        model = Model()
+        # # from models.yolo_fusion import Model
+        # model = Model()
         
-        # new_parameters = dict(model.named_parameters())
-        # for key in dict(model.named_parameters()).keys():
-        #     domain = key.split('.')[0]
-        #     layer_tokens = key.split('.')[1:]
-        #     if domain == 'head': 
-        #         layer_tokens[0] = str(int(layer_tokens[0]) + 10)
+        # # new_parameters = dict(model.named_parameters())
+        # # for key in dict(model.named_parameters()).keys():
+        # #     domain = key.split('.')[0]
+        # #     layer_tokens = key.split('.')[1:]
+        # #     if domain == 'head': 
+        # #         layer_tokens[0] = str(int(layer_tokens[0]) + 10)
                 
-        #     layer = '.'.join(layer_tokens)
-        #     new_key = 'model.'+layer
-        #     try:
-        #         new_parameters[key] = dict(yolov5.named_parameters())[new_key] 
-        #     except:
-        #         pass
-        # exit()
-        # model.load_state_dict({**new_parameters, **model.state_dict()}, strict=False)
-        model.load_state_dict(yolov5.state_dict(), strict=False)
+        # #     layer = '.'.join(layer_tokens)
+        # #     new_key = 'model.'+layer
+        # #     try:
+        # #         new_parameters[key] = dict(yolov5.named_parameters())[new_key] 
+        # #     except:
+        # #         pass
+        # # exit()
+        # # model.load_state_dict({**new_parameters, **model.state_dict()}, strict=False)
+        # model.load_state_dict(yolov5.state_dict(), strict=False)
         
         stride = int(model.stride.max())  # model stride
         names = model.module.names if hasattr(model, 'module') else model.names  # get class names
@@ -158,27 +163,32 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
     # Run inference
     if pt and device.type != 'cpu':
-        model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))  # run once
+        model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())), torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))  # run once
     dt, seen = [0.0, 0.0, 0.0], 0
-    for path, img, im0s, vid_cap in dataset:
+    for path, img, im0s, ir, ir0 in dataset:
         t1 = time_sync()
         if onnx:
             img = img.astype('float32')
+            ir = ir.astype('float32')
         else:
             img = torch.from_numpy(img).to(device)
             img = img.half() if half else img.float()  # uint8 to fp16/32
+            ir = torch.from_numpy(ir).to(device)
+            ir = ir.half() if half else ir.float()  # uint8 to fp16/32
         img = img / 255.0  # 0 - 255 to 0.0 - 1.0
+        ir = ir / 255.0  # 0 - 255 to 0.0 - 1.0
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
+            ir = ir[None]  # expand for batch dim
         t2 = time_sync()
         dt[0] += t2 - t1
 
         # Inference
         if pt:
             visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
-            pred = model(img, augment=augment, visualize=visualize)[0]
+            pred = model(img, ir, augment=augment, visualize=visualize)[0]
         elif onnx:
-            pred = torch.tensor(session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: img}))
+            pred = torch.tensor(session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: img}), session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: ir}))
         else:  # tensorflow model (tflite, pb, saved_model)
             imn = img.permute(0, 2, 3, 1).cpu().numpy()  # image in numpy
             if pb:
