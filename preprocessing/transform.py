@@ -13,52 +13,57 @@ from LabelSet import LabelSet
 from Image import Image
 
 # base folders
-INPUT_BASE_FOLDER = '../data/train/'
-CROPPED_BASE_FOLDER = '../data-cropped/train/'
-PARTITION_BASE_FOLDER = '../data-partitioned/train/'
+INPUT_BASE_FOLDER = '../data/'
+CROPPED_BASE_FOLDER = '../data-cropped/'
+PARTITION_BASE_FOLDER = '../data-partitioned/'
 
 # base folder structure
-RGB_FOLDER = 'images/'
+RGB_FOLDER = 'rgb/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
-def show_blended_output(fileroot:str, partition:'tuple[int, int]'=None, use_ir:bool=False):
+def show_blended_output(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, save:bool=False):
     '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
+    log_string = f"Showing image {fileroot}, {'with' if use_ir else 'without'} IR."
+    if(partition_coordinates is not None):
+        log_string += f" Partition: {partition_coordinates}."
+    print(log_string)
+
     base_folder = CROPPED_BASE_FOLDER if use_ir else INPUT_BASE_FOLDER
-    if(partition is not None):
+    if(partition_coordinates is not None):
         base_folder = PARTITION_BASE_FOLDER
-        fileroot = f"{fileroot}_p{partition[0]}{partition[1]}"
+        fileroot = f"{fileroot}_p{partition_coordinates[0]}{partition_coordinates[1]}"
 
-    rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition)
+    rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition_coordinates)
     if(use_ir):
-        ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition)
-    label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition)
+        ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+    label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+
+    plt.figure()
 
     if(use_ir):
-        blended_img = np.maximum(rgb_image.img, ir_image.img)
+        blended_img = cv2.cvtColor(np.maximum(rgb_image.img, ir_image.img), cv2.COLOR_BGR2RGB)
         for label in label_set.labels:
             blended_img = cv2.rectangle(blended_img, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
-        plt.figure()
         plt.subplot(2, 3, 1)
-        plt.imshow(rgb_image.img)
+        plt.imshow(cv2.cvtColor(rgb_image.img, cv2.COLOR_BGR2RGB))
         plt.subplot(2, 3, 4)
-        plt.imshow(ir_image.img)
+        plt.imshow(cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB))
         plt.subplot(2, 3, (2,6))
         plt.imshow(blended_img)
-        # plt.get_current_fig_manager().full_screen_toggle()
-        plt.show()
     else:
-        img = rgb_image.img
+        img = cv2.cvtColor(rgb_image.img, cv2.COLOR_BGR2RGB)
         for label in label_set.labels:
             img = cv2.rectangle(img, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
-        plt.figure()
         plt.imshow(img)
-        plt.show()
+
+    # plt.get_current_fig_manager().full_screen_toggle()
+    plt.title(fileroot)
+    plt.show()
 
 
-
-def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=False):
+def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
     assert use_ir or partition, "Why even run this thing, if you're not gonna use_ir or partition..?"
 
     fileroots = set() # Look-up for fileroots we want to save. Not relevent if `keep_empty=True`
@@ -121,7 +126,7 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=False)
 
 
 if __name__ == "__main__":
-    transform_data(use_ir=True, partition=True, keep_empty=True)
-    # show_blended_output("2021_09_holtan_0535", partition=(1,1), use_ir=True)
+    # transform_data(use_ir=True, partition=False, keep_empty=True)
+    show_blended_output("2020_05_orkanger_0960", partition_coordinates=None, use_ir=True)
 
         
