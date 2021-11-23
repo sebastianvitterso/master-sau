@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=12000
 #SBATCH --job-name="YOLOv5 Training for sheep recognition"
-#SBATCH --output=job.out
+#SBATCH --output=train.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no
 #SBATCH --mail-type=END
 
