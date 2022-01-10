@@ -36,6 +36,7 @@ import val  # for end-of-epoch mAP
 from models.experimental import attempt_load
 from models.yolo import Model
 from models.yolo_fusion import FusionModel
+from models.yolo_four_input import FourInputModel
 from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
@@ -67,10 +68,10 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
     
     # TODO: Remove this
-    # cfg = 'models/hub/yolov5l6.yaml'
-    # batch_size = 1
-    # epochs = 1
-    # data = 'data/sheep.yaml'
+    cfg = 'models/hub/yolov5l6.yaml'
+    batch_size = 1
+    epochs = 1
+    data = 'data/sheep.yaml'
     # opt.cache = ''
 
     # Directories
@@ -122,14 +123,14 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         with torch_distributed_zero_first(RANK):
             weights = attempt_download(weights)  # download if not found locally
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
-        model = FusionModel(cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = FourInputModel(cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         exclude = ['anchor'] if (cfg or hyp.get('anchors')) and not resume else []  # exclude keys
         csd = ckpt['model'].float().state_dict()  # checkpoint state_dict as FP32
         csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
         model.load_state_dict(csd, strict=False)  # load
         LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')  # report
     else:
-        model = FusionModel(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = FourInputModel(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
 
     # Freeze
     freeze = [f'model.{x}.' for x in range(freeze)]  # layers to freeze
@@ -200,7 +201,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
     # Image sizes
     gs = max(int(model.stride.max()), 32)  # grid size (max stride)
-    nl = model.head[-1].nl  # number of detection layers (used for scaling hyp['obj'])
+    nl = model.model[-1].nl  # number of detection layers (used for scaling hyp['obj'])
     imgsz = check_img_size(opt.imgsz, gs, floor=gs * 2)  # verify imgsz is gs-multiple
 
     # DP mode
