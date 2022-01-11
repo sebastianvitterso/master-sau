@@ -102,6 +102,9 @@ class FourInputModel(nn.Module):
         self.names = [str(i) for i in range(self.yaml['nc'])]  # default names
         self.inplace = self.yaml.get('inplace', True)
 
+        # Reduce number of channels in ir from 3 to 1
+        self.reduce_channels = torch.nn.Conv2d(3, 1, 1)
+
         # Build strides, anchors
         m = self.model[-1]  # Detect()
         if isinstance(m, Detect):
@@ -139,10 +142,8 @@ class FourInputModel(nn.Module):
     def _forward_once(self, x_rgb, x_ir, profile=False, visualize=False):
         y, dt = [], []  # outputs
 
-
         # Reduce number of channels in ir from 3 to 1
-        reduce_channels = torch.nn.Conv2d(3, 1, 1)
-        x_ir = reduce_channels(x_ir)
+        x_ir = self.reduce_channels(x_ir)
 
         # Concat the 3 channels from rgb and the 1 channel from ir
         x = torch.cat((x_rgb, x_ir), dim=1)
