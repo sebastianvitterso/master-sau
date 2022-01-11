@@ -68,10 +68,10 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
     
     # TODO: Remove this
-    cfg = 'models/hub/yolov5l6.yaml'
-    batch_size = 1
-    epochs = 1
-    data = 'data/sheep.yaml'
+    # cfg = 'models/hub/yolov5l6.yaml'
+    # batch_size = 1
+    # epochs = 1
+    # data = 'data/sheep.yaml'
     # opt.cache = ''
 
     # Directories
