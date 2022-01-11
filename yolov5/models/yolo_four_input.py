@@ -139,7 +139,13 @@ class FourInputModel(nn.Module):
     def _forward_once(self, x_rgb, x_ir, profile=False, visualize=False):
         y, dt = [], []  # outputs
 
-        x = torch.cat((x_rgb, x_ir[0][0].unsqueeze(0).unsqueeze(0)), dim=1)
+
+        # Reduce number of channels in ir from 3 to 1
+        reduce_channels = torch.nn.Conv2d(3, 1, 1)
+        x_ir = reduce_channels(x_ir)
+
+        # Concat the 3 channels from rgb and the 1 channel from ir
+        x = torch.cat((x_rgb, x_ir), dim=1)
 
         for m in self.model:
             if m.f != -1:  # if not from previous layer
@@ -258,7 +264,6 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
             args.append([ch[x] for x in f])
             if isinstance(args[1], int):  # number of anchors
                 args[1] = [list(range(args[1] * 2))] * len(f)
-            print('ARGS: ', args)
         elif m is Contract:
             c2 = ch[f] * args[0] ** 2
         elif m is Expand:
