@@ -1,7 +1,7 @@
 from helpers import RAW_SIZE_RGB, CROPPED_SIZE, PARTITION_SIZE, CORNER_TOP_LEFT, GET_PARTITION_TOP_LEFT_CORNER
 
 class Label():
-    def __init__(self, top:int, bottom:int, left:int, right:int, category:int, is_cropped:bool, is_partition:bool=False):
+    def __init__(self, top:int, bottom:int, left:int, right:int, category:int, is_cropped:bool, is_partition:bool=False, confidence:float=1):
         self.top = top
         self.bottom = bottom
         self.right = right
@@ -9,9 +9,10 @@ class Label():
         self.category = category
         self.is_cropped = is_cropped
         self.is_partition = is_partition
+        self.confidence = confidence 
         
     def __str__(self):
-        return f"<Label is_cropped={self.is_cropped}, is_cropped={self.is_partition}, category={self.category}, top={self.top}, bottom={self.bottom}, right={self.right}, left={self.left}>"
+        return f"<Label is_cropped={self.is_cropped}, is_cropped={self.is_partition}, category={self.category}, confidence={self.confidence}, top={self.top}, bottom={self.bottom}, right={self.right}, left={self.left}>"
     def __repr__(self):
         return self.__str__()
 
@@ -80,3 +81,24 @@ class Label():
         height = self.bottom - self.top
         width = self.right - self.left
         return height*width
+
+
+    def getIntersection(self, label:'Label'):
+        max_top = max(self.top, label.top)
+        min_bottom = min(self.bottom, label.bottom)
+        max_left = max(self.left, label.left)
+        min_right = min(self.right, label.right)
+
+        # if they don't overlap at all, return 0.
+        if(min_bottom < max_top or min_right < max_left):
+            return 0
+
+        height = min_bottom - max_top
+        width = min_right - max_left
+        return height*width
+
+    def getUnion(self, label:'Label'):
+        return self.area() + label.area() - self.getIntersection(label)
+
+    def getIntersectionOverUnion(self, label:'Label'):
+        return self.getIntersection(label) / self.getUnion(label)
