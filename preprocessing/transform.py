@@ -12,10 +12,10 @@ from matplotlib import pyplot as plt
 from models import LabelSet, Image
 
 # base folders
-INPUT_BASE_FOLDER = '../data/train'
-CROPPED_BASE_FOLDER = '../data-cropped/train'
-PARTITION_BASE_FOLDER = '../data-partitioned/train'
-CROPPED_PARTITION_BASE_FOLDER = '../data-cropped-partition/train'
+INPUT_BASE_FOLDER = '../data/train/'
+CROPPED_BASE_FOLDER = '../data-cropped/train/'
+PARTITION_BASE_FOLDER = '../data-partitioned/train/'
+CROPPED_PARTITION_BASE_FOLDER = '../data-cropped-partitioned/train/'
 
 # base folder structure
 RGB_FOLDER = 'images/'
@@ -134,7 +134,7 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
 
 
 if __name__ == "__main__":
-    transform_data(use_ir=True, partition=False, keep_empty=True)
+    transform_data(use_ir=False, partition=True, keep_empty=True)
     # show_blended_output("2020_05_orkanger_0960", partition_coordinates=None, use_ir=True)
 
         
