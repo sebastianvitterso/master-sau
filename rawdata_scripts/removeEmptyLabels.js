@@ -4,17 +4,25 @@ import path from 'path';
 
 // HELPERS
 
-const LABELS_PATH = path.resolve('../raw_data/hallvard/labels_with_color/')
+const BASE_PATH = path.resolve('../../master-sau/data-partitioned/train/')
+
+
+const LABELS_PATH = path.resolve(BASE_PATH + '/labels/')
 
 // SCRIPT
 
 const labels = await readdir(LABELS_PATH)
 
+let removedCount = 0
+let processedCount = 0
+let totalCount = labels.length
+
 function removeLabelIfEmpty(name) {
   try {
     const data = readFileSync(LABELS_PATH + '/' + name, 'utf8')
     if (data == '') {
-      console.log(name)
+      removedCount++
+      console.log(`Removed: ${removedCount} | ${processedCount} / ${totalCount}`)
       unlinkSync(LABELS_PATH + '/' + name)
     }
   } catch (err) {
@@ -24,5 +32,6 @@ function removeLabelIfEmpty(name) {
 
 
 for (const fileName of labels) {
+  processedCount++
   removeLabelIfEmpty(fileName)
 }
