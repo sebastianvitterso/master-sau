@@ -290,7 +290,7 @@ class GridLabelSet():
   #####  #    # # #####  ####### #    # #####  ###### ###### 
                                                              
 class GridLabel():
-    def __init__(self, bounding_box:tuple[tuple[int, int],tuple[int, int]]):
+    def __init__(self, bounding_box:'tuple[tuple[int, int],tuple[int, int]]'):
         self.value = False # can be True|False|None
         self.bounding_box = bounding_box
 

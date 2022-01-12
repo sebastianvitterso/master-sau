@@ -25,7 +25,7 @@ cd preprocessing
 pwd
 pip install numpy opencv-python scikit-image --no-cache-dir
 
-python transform.py
+python -u transform.py
 
 
 
