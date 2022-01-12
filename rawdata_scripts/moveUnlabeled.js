@@ -1,12 +1,11 @@
 import { readFile, writeFile, readdir, rename } from 'fs/promises';
-import sizeOf from 'image-size'
 import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('../raw_data/kari/RGB/')
-const LABELS_PATH = path.resolve('../raw_data/kari/labels/')
-const TO_PATH = path.resolve('../raw_data/kari/RGB_unlabeled/')
+const FROM_PATH = path.resolve('../raw_data/hallvard/IR/')
+const LABELS_PATH = path.resolve('../raw_data/hallvard/labels/')
+const TO_PATH = path.resolve('../raw_data/hallvard/IR_unlabeled/')
 
 // SCRIPT
 
