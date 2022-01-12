@@ -1,23 +1,28 @@
 import { readdir, rename} from 'fs/promises';
 import { readFileSync, writeFileSync, readFile, writeFile, unlinkSync} from 'fs';
-import sizeOf from 'image-size'
 import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('./roboflow_images/')
-const LABELS_PATH = path.resolve('./roboflow_labels/')
-const TO_PATH = path.resolve('./output/labels/')
+const BASE_PATH = path.resolve('../../master-sau/data-partitioned/train/')
+
+
+const LABELS_PATH = path.resolve(BASE_PATH + '/labels/')
 
 // SCRIPT
 
-const images = await readdir(FROM_PATH)
 const labels = await readdir(LABELS_PATH)
+
+let removedCount = 0
+let processedCount = 0
+let totalCount = labels.length
 
 function removeLabelIfEmpty(name) {
   try {
     const data = readFileSync(LABELS_PATH + '/' + name, 'utf8')
     if (data == '') {
+      removedCount++
+      console.log(`Removed: ${removedCount} | ${processedCount} / ${totalCount}`)
       unlinkSync(LABELS_PATH + '/' + name)
     }
   } catch (err) {
@@ -27,5 +32,6 @@ function removeLabelIfEmpty(name) {
 
 
 for (const fileName of labels) {
+  processedCount++
   removeLabelIfEmpty(fileName)
 }
