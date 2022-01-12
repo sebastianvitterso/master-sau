@@ -1,23 +1,20 @@
 import { readdir, rename} from 'fs/promises';
 import { readFileSync, writeFileSync, readFile, writeFile, unlinkSync} from 'fs';
-import sizeOf from 'image-size'
 import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('./roboflow_images/')
-const LABELS_PATH = path.resolve('./roboflow_labels/')
-const TO_PATH = path.resolve('./output/labels/')
+const LABELS_PATH = path.resolve('../raw_data/hallvard/labels_with_color/')
 
 // SCRIPT
 
-const images = await readdir(FROM_PATH)
 const labels = await readdir(LABELS_PATH)
 
 function removeLabelIfEmpty(name) {
   try {
     const data = readFileSync(LABELS_PATH + '/' + name, 'utf8')
     if (data == '') {
+      console.log(name)
       unlinkSync(LABELS_PATH + '/' + name)
     }
   } catch (err) {

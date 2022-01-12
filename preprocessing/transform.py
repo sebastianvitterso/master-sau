@@ -9,16 +9,16 @@ import cv2
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from .models import LabelSet, Image
+from models import LabelSet, Image
 
 # base folders
-INPUT_BASE_FOLDER = '../data/'
-CROPPED_BASE_FOLDER = '../data-cropped/'
-PARTITION_BASE_FOLDER = '../data-partitioned/'
-CROPPED_PARTITION_BASE_FOLDER = '../data-cropped-partition/'
+INPUT_BASE_FOLDER = '../data/train'
+CROPPED_BASE_FOLDER = '../data-cropped/train'
+PARTITION_BASE_FOLDER = '../data-partitioned/train'
+CROPPED_PARTITION_BASE_FOLDER = '../data-cropped-partition/train'
 
 # base folder structure
-RGB_FOLDER = 'rgb/'
+RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
@@ -68,7 +68,9 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
 
     fileroots = set() # Look-up for fileroots we want to save. Not relevent if `keep_empty=True`
 
-    for filename in os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER):
+    filenames = os.listdir(INPUT_BASE_FOLDER + LABEL_FOLDER)
+    filenames.sort()
+    for filename in filenames:
         fileroot = filename.split('.')[0]
         label_set = LabelSet.loadFromFilePath(INPUT_BASE_FOLDER + LABEL_FOLDER + filename, is_cropped=False)
         if(use_ir):
@@ -88,7 +90,9 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
 
         print(f"Processed labelfile: {fileroot}")
 
-    for filename in os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER):
+    filenames = os.listdir(INPUT_BASE_FOLDER + RGB_FOLDER)
+    filenames.sort()
+    for filename in filenames:
         fileroot = filename.split('.')[0]
         image = Image.loadFromImagePath(INPUT_BASE_FOLDER + RGB_FOLDER + filename, is_cropped=False)
         if(use_ir):
@@ -108,7 +112,9 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
 
 
     if(use_ir):
-        for filename in os.listdir(INPUT_BASE_FOLDER + IR_FOLDER):
+        filenames = os.listdir(INPUT_BASE_FOLDER + IR_FOLDER)
+        filenames.sort()
+        for filename in filenames:
             fileroot = filename.split('.')[0]
             image = Image.loadFromImagePath(INPUT_BASE_FOLDER + IR_FOLDER + filename, is_cropped=False, is_distorted=True)
             image = image.undistort()
@@ -128,7 +134,7 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
 
 
 if __name__ == "__main__":
-    # transform_data(use_ir=True, partition=False, keep_empty=True)
-    show_blended_output("2020_05_orkanger_0960", partition_coordinates=None, use_ir=True)
+    transform_data(use_ir=True, partition=False, keep_empty=True)
+    # show_blended_output("2020_05_orkanger_0960", partition_coordinates=None, use_ir=True)
 
         
