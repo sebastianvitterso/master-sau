@@ -14,6 +14,7 @@
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
+uname -a
 pip freeze --user | xargs pip uninstall -y
 module purge
 module load fosscuda/2020b

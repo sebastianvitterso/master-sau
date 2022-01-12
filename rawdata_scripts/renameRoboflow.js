@@ -4,7 +4,7 @@ import path from 'path';
 // HELPERS
 
 const FROM_PATH = path.resolve('../raw_data/hallvard/images/')
-const LABELS_PATH = path.resolve('../raw_data/hallvard/labels/')
+const LABELS_PATH = path.resolve('../raw_data/hallvard/labels_with_color/')
 const TO_PATH = path.resolve('../raw_data/hallvard/labels/')
 
 function fullPath(filename, basePath=FROM_PATH) {

@@ -1,21 +1,19 @@
 import { readdir, rename} from 'fs/promises';
 import { readFileSync, writeFileSync, readFile, writeFile } from 'fs';
-import sizeOf from 'image-size'
 import path from 'path';
 
 // HELPERS
 
-const LABELS_PATH = path.resolve('./roboflow_labels/')
+const LABELS_PATH = path.resolve('../raw_data/kari/labels/')
 
 // SCRIPT
-
-const labels = await readdir(LABELS_PATH)
 
 const categoriesConverter = { 
   '0': '0', 
   '1': '0', 
   '2': '0', 
   '3': '0', 
+  '4': '0', 
 }
 
 let distribution = {
@@ -46,7 +44,7 @@ function renameCategoryId(name) {
     const oldIds = rows.map(r => r[0])
     const newIds = oldIds.map(id => categoriesConverter[id])
 
-    newIds.forEach(id => distribution[id]++)
+    oldIds.forEach(id => distribution[id]++)
   
     // Replace old with new
     rows.forEach(r => r[0] = newIds.shift())
@@ -55,8 +53,6 @@ function renameCategoryId(name) {
     rows = rows.map(r => r.join(' '))
     const output = rows.join('\n')
 
-    // console.log(output)
-  
     writeFileSync(LABELS_PATH + '/' + name, output)
   
   } catch (err) {
