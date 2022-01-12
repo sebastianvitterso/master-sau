@@ -257,26 +257,49 @@ class GridLabelSet():
         self.is_cropped = is_cropped
         self.grid = grid
 
-    
     @classmethod
-    def from_label_set(cls, label_set:LabelSet):
-        grid:np.ndarray = np.fromfunction(lambda x,y: GridLabel.from_coordinates(x,y, is_cropped=label_set.is_cropped), (8,7))
+    def from_label_set(cls, label_set:LabelSet, is_prediction:bool=False):
+        grid_label_constructor_vectorized = np.vectorize(lambda x,y: GridLabel.from_coordinates(x,y, is_cropped=label_set.is_cropped))
+        grid:np.ndarray = np.fromfunction(grid_label_constructor_vectorized, (8,7))
         
         for label in label_set.labels:
             for ix, iy in np.ndindex(grid.shape):
                 grid_label:GridLabel = grid[ix, iy]
-                if(grid_label.value == True): 
-                    continue
-                elif grid_label.get_overlap_ratio(label) == 0:
-                    continue
-                elif grid_label.get_overlap_ratio(label) > 0.2:
-                    grid_label.value = True
+
+                # `is_prediction` is True if we're transforming a prediction LabelSet, 
+                # and False if we're transforming a ground truth LabelSet.
+                if(is_prediction): 
+                    if grid_label.value == True:
+                        continue
+                    elif grid_label.get_overlap_ratio(label) > 0.1:
+                        grid_label.value = True
                 else:
-                    grid_label.value = None
+                    if grid_label.value == True:
+                        continue
+                    elif grid_label.get_overlap_ratio(label) > 0.2:
+                        grid_label.value = True
+                    elif grid_label.get_overlap_ratio(label) > 0:
+                        grid_label.value = None # None means it's uncertain, and should not be counted.
 
         return cls(label_set.is_cropped, grid)
 
+    def compare(self, prediction_grid_label_set:'GridLabelSet'):
+        """ Should be used like this: `ground_truth_grid_label_set.compare(prediction_grid_label_set)` """
+        tp = 0 # true positive counter
+        tn = 0 # true negative counter
+        fp = 0 # false positive counter
+        fn = 0 # false negative counter
 
+        for ix, iy in np.ndindex(self.grid.shape):
+            ground_truth_grid_label:GridLabel = self.grid[ix, iy]
+            prediction_grid_label:GridLabel = prediction_grid_label_set.grid[ix, iy]
+
+            if(ground_truth_grid_label.value == True and prediction_grid_label.value == True): tp += 1
+            if(ground_truth_grid_label.value == True and prediction_grid_label.value == False): fn += 1
+            if(ground_truth_grid_label.value == False and prediction_grid_label.value == True): fp += 1
+            if(ground_truth_grid_label.value == False and prediction_grid_label.value == False): tn += 1
+
+        return (tp, tn, fp, fn)
 
 
 
@@ -290,7 +313,7 @@ class GridLabelSet():
   #####  #    # # #####  ####### #    # #####  ###### ###### 
                                                              
 class GridLabel():
-    def __init__(self, bounding_box:tuple[tuple[int, int],tuple[int, int]]):
+    def __init__(self, bounding_box:'tuple[tuple[int, int],tuple[int, int]]'):
         self.value = False # can be True|False|None
         self.bounding_box = bounding_box
 

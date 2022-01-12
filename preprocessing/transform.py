@@ -15,6 +15,7 @@ from .models import LabelSet, Image
 INPUT_BASE_FOLDER = '../data/'
 CROPPED_BASE_FOLDER = '../data-cropped/'
 PARTITION_BASE_FOLDER = '../data-partitioned/'
+CROPPED_PARTITION_BASE_FOLDER = '../data-cropped-partition/'
 
 # base folder structure
 RGB_FOLDER = 'rgb/'
@@ -82,7 +83,8 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
                     x, y = partition_label_set.partition_coordinates
                     partition_fileroot = f"{fileroot}_p{x}{y}"
                     fileroots.add(partition_fileroot)
-                    partition_label_set.writeToFilePath(PARTITION_BASE_FOLDER + LABEL_FOLDER + partition_fileroot + '.txt')
+                    base_folder = CROPPED_PARTITION_BASE_FOLDER if use_ir else PARTITION_BASE_FOLDER
+                    partition_label_set.writeToFilePath(base_folder + LABEL_FOLDER + partition_fileroot + '.txt')
 
         print(f"Processed labelfile: {fileroot}")
 
@@ -99,7 +101,8 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
                 x, y = partition_image.partition_coordinates
                 partition_fileroot = f"{fileroot}_p{x}{y}"
                 if(partition_fileroot in fileroots or keep_empty):
-                    partition_image.saveToImagePath(PARTITION_BASE_FOLDER + RGB_FOLDER + partition_fileroot + '.JPG')
+                    base_folder = CROPPED_PARTITION_BASE_FOLDER if use_ir else PARTITION_BASE_FOLDER
+                    partition_image.saveToImagePath(base_folder + RGB_FOLDER + partition_fileroot + '.JPG')
 
         print(f"Processed RGB: {fileroot}")
 
@@ -118,7 +121,7 @@ def transform_data(use_ir:bool=True, partition:bool=True, keep_empty:bool=True):
                     x, y = partition_image.partition_coordinates
                     partition_fileroot = f"{fileroot}_p{x}{y}"
                     if(partition_fileroot in fileroots or keep_empty):
-                        partition_image.saveToImagePath(PARTITION_BASE_FOLDER + IR_FOLDER + partition_fileroot + '.JPG')
+                        partition_image.saveToImagePath(CROPPED_PARTITION_BASE_FOLDER + IR_FOLDER + partition_fileroot + '.JPG')
 
             print(f"Processed IR: {fileroot}")
 
