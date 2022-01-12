@@ -6,13 +6,12 @@
 # cropped coordinates were retrieved simply by measuring in photopea.com
 from typing import List
 
-
 CORNER_TOP_LEFT = (480, 285)
 CORNER_BOTTOM_RIGHT = (3680, 2608)
 RAW_SIZE_RGB = (4056, 3040)
 RAW_SIZE_IR = (640, 480)
 PARTITION_SIZE = (1280, 1280)
-CROPPED_SIZE = (
+CROPPED_SIZE = ( # (3200, 2323)
     CORNER_BOTTOM_RIGHT[0] - CORNER_TOP_LEFT[0],
     CORNER_BOTTOM_RIGHT[1] - CORNER_TOP_LEFT[1],
 )

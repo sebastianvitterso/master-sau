@@ -9,8 +9,7 @@ import cv2
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from LabelSet import LabelSet
-from Image import Image
+from .models import LabelSet, Image
 
 # base folders
 INPUT_BASE_FOLDER = '../data/'
