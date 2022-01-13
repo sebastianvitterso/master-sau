@@ -1,5 +1,7 @@
 import { readdir} from 'fs/promises';
-import { readFileSync, unlinkSync, existsSync} from 'fs';
+import { readFileSync, unlinkSync, existsSync, renameSync} from 'fs';
+
+const DELETE_LABEL = false
 
 const BASE_FOLDER = '../../'
 
@@ -19,6 +21,8 @@ const SELECTED_DATA_SET_FOLDER = DATA_SET_TRAIN_FOLDER // e.g. '../../data/train
 
 const RGB_FOLDER = SELECTED_DATA_SET_FOLDER + 'images/'
 const IR_FOLDER = SELECTED_DATA_SET_FOLDER + 'ir/'
+const UNLABELED_RGB_FOLDER = SELECTED_DATA_SET_FOLDER + 'images_unlabeled/'
+const UNLABELED_IR_FOLDER = SELECTED_DATA_SET_FOLDER + 'ir_unlabeled/'
 const LABEL_FOLDER = SELECTED_DATA_SET_FOLDER + 'labels/'
 
 
@@ -34,20 +38,27 @@ for (const [i, fileName] of labels.entries()) {
       const fileRoot = fileName.split('.')[0]
       
       // delete the corresponding RGB image
-      const rgbFileName = RGB_FOLDER + fileRoot + '.JPG'
-      if(existsSync(rgbFileName)) {
-        unlinkSync(rgbFileName)
+      const rgbOldName = RGB_FOLDER + fileRoot + '.JPG'
+      const rgbNewName = UNLABELED_RGB_FOLDER + fileRoot + '.JPG'
+      if(existsSync(rgbOldName)) {
+        renameSync(rgbOldName, rgbNewName)
         removedRgb++
       }
       
       // delete the corresponding IR image
-      const irFileName = IR_FOLDER + fileRoot + '.JPG'
-      if(existsSync(irFileName)) {
-        unlinkSync(irFileName)
+      const irOldName = IR_FOLDER + fileRoot + '.JPG'
+      const irNewName = UNLABELED_IR_FOLDER + fileRoot + '.JPG'
+      if(existsSync(irOldName)) {
+        renameSync(irOldName, irNewName)
         removedIr++
       }
+
+      if(DELETE_LABEL) {
+        unlinkSync(LABEL_FOLDER + fileName)
+        removedLabels++
+      }
     }
-    console.log(`Removed: Labels: ${removedLabels}, RGB: ${removedRgb}, IR: ${removedIr} | ${i + 1} / ${labels.length}`)
+    console.log(`Removed labels: ${removedLabels} | Moved RGB: ${removedRgb} | Moved IR: ${removedIr} | ${i + 1} / ${labels.length}`)
   } catch (err) {
     console.error(err)
   }
