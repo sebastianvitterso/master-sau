@@ -4,7 +4,7 @@ import path from 'path';
 // HELPERS
 
 
-const BASE_PATH = path.resolve('../../master-sau/data-partitioned/validation/')
+const BASE_PATH = path.resolve('../../data-cropped-partitioned/train/')
 
 const FROM_PATH = path.resolve(BASE_PATH + '/images/')
 const LABELS_PATH = path.resolve(BASE_PATH + '/labels/')
@@ -22,7 +22,7 @@ const labelsLookUptable = labels.reduce(function(map, fileName) {
 }, {});
 
 
-let removedCount = 0
+let movedCount = 0
 let processedCount = 0
 let totalCount = images.length
 
@@ -31,8 +31,8 @@ for (const fileName of images) {
   const name = fileName.split('.')[0]
 
   if(!labelsLookUptable[name]) {
-    removedCount++
-    console.log(`Removed: ${removedCount} | ${processedCount} / ${totalCount}`)
+    movedCount++
+    console.log(`Removed: ${movedCount} | ${processedCount} / ${totalCount}`)
     // console.log(`${FROM_PATH}/${fileName}`, `${TO_PATH}/${fileName}`)
     await rename(`${FROM_PATH}/${fileName}`, `${TO_PATH}/${fileName}`)
 

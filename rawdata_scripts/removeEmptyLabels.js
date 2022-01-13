@@ -4,7 +4,7 @@ import path from 'path';
 
 // HELPERS
 
-const BASE_PATH = path.resolve('../../master-sau/data-partitioned/train/')
+const BASE_PATH = path.resolve('../../data-cropped-partitioned/train/')
 
 
 const LABELS_PATH = path.resolve(BASE_PATH + '/labels/')
@@ -19,6 +19,7 @@ let totalCount = labels.length
 
 function removeLabelIfEmpty(name) {
   try {
+    processedCount++
     const data = readFileSync(LABELS_PATH + '/' + name, 'utf8')
     if (data == '') {
       removedCount++
@@ -32,6 +33,5 @@ function removeLabelIfEmpty(name) {
 
 
 for (const fileName of labels) {
-  processedCount++
   removeLabelIfEmpty(fileName)
 }
