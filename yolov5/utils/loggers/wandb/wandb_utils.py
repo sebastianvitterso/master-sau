@@ -23,8 +23,11 @@ RANK = int(os.getenv('RANK', -1))
 
 try:
     import wandb
-
+    
     assert hasattr(wandb, '__version__')  # verify package import not local dir
+    
+    wandb.init(project="test-project", entity="locatesheep")
+
     if pkg.parse_version(wandb.__version__) >= pkg.parse_version('0.12.2') and RANK in [0, -1]:
         wandb.login(timeout=30)
 except (ImportError, AssertionError):

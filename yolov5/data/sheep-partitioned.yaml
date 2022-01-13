@@ -1,4 +1,4 @@
-path: ../data-partitioned/
+path: ../../data-partitioned/
 train: ./train/images
 val: ./validation/images
 
