@@ -27,12 +27,14 @@ pwd
 pip install -r requirements.txt --no-cache-dir
 
 # Train from pretrained weights
-# python train.py --img 1280 --batch 8 --epochs 300 --data sheep.yaml --weights yolov5l6.pt --cache --freeze 10 --device 0
+# python train.py --img 1280 --batch 6 --epochs 300 --data sheep.yaml --weights yolov5l6.pt --cache --device 0
+# python train.py --img 1280 --batch 6 --epochs 300 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 # Train from scratch
 # python train.py --img 1280 --batch 6 --epochs 300 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 # Train from scratch with partitions
-python train.py --img 1280 --batch 6 --epochs 300 --data sheep-cropped.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+# python train.py --img 1280 --batch 6 --epochs 300 --data sheep-partitioned.yaml --weights yolov5l6.pt --cache --device 0
 
 # python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --device 0,1
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
+python val.py --weights rgb.pt --img 1280 # --save-txt --save-conf 
 
