@@ -46,10 +46,6 @@ for (const [i, fileName] of labels.entries()) {
         unlinkSync(irFileName)
         removedIr++
       }
-
-      // delete the label file
-      unlinkSync(LABEL_FOLDER + fileName)
-
     }
     console.log(`Removed: Labels: ${removedLabels}, RGB: ${removedRgb}, IR: ${removedIr} | ${i + 1} / ${labels.length}`)
   } catch (err) {
