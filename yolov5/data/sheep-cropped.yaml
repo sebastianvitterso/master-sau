@@ -1,4 +1,4 @@
-path: ../data-cropped/
+path: ../../data-cropped/
 train: ./train/images
 val: ./validation/images
 

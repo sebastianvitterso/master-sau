@@ -6,10 +6,12 @@ data/
 raw_data/
 data-partitioned/
 data-cropped/
+data-cropped-partitioned/
 
 !yolov5/data/
 yolov5/data/images
 yolov5/runs/
+yolov5/wandb/
 
 node_modules
 

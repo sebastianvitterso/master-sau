@@ -1,12 +1,14 @@
 import { readFile, writeFile, readdir, rename } from 'fs/promises';
-import sizeOf from 'image-size'
 import path from 'path';
 
 // HELPERS
 
-const FROM_PATH = path.resolve('../raw_data/kari/RGB/')
-const LABELS_PATH = path.resolve('../raw_data/kari/labels/')
-const TO_PATH = path.resolve('../raw_data/kari/RGB_unlabeled/')
+
+const BASE_PATH = path.resolve('../../data-cropped-partitioned/train/')
+
+const FROM_PATH = path.resolve(BASE_PATH + '/images/')
+const LABELS_PATH = path.resolve(BASE_PATH + '/labels/')
+const TO_PATH = path.resolve(BASE_PATH + '/images_unlabeled/')
 
 // SCRIPT
 
@@ -20,17 +22,20 @@ const labelsLookUptable = labels.reduce(function(map, fileName) {
 }, {});
 
 
-let count = 0
+let movedCount = 0
+let processedCount = 0
+let totalCount = images.length
+
 for (const fileName of images) {
+  processedCount++
   const name = fileName.split('.')[0]
 
   if(!labelsLookUptable[name]) {
-    count++
-    console.log(`${FROM_PATH}/${fileName}`, `${TO_PATH}/${fileName}`)
+    movedCount++
+    console.log(`Removed: ${movedCount} | ${processedCount} / ${totalCount}`)
+    // console.log(`${FROM_PATH}/${fileName}`, `${TO_PATH}/${fileName}`)
     await rename(`${FROM_PATH}/${fileName}`, `${TO_PATH}/${fileName}`)
 
   }
 
 }
-
-console.log(`Unlabeled files count: ${count}/${images.length}`)

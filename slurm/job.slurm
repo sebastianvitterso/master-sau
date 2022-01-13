@@ -14,6 +14,7 @@
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
+uname -a
 pip freeze --user | xargs pip uninstall -y
 module purge
 module load fosscuda/2020b
@@ -35,4 +36,3 @@ python train.py --img 1280 --batch 6 --epochs 300 --data sheep-partitioned.yaml 
 # python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --device 0,1
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
 
-uname -a
