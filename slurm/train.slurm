@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="V100|A100"
+#SBATCH --constraint="A100"
 #SBATCH --account=ie-idi
 #SBATCH --time=167:00:00
 #SBATCH --nodes=1
@@ -26,6 +26,7 @@ cd ..
 cd yolov5
 pwd
 pip install -r requirements.txt --no-cache-dir
+pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # Enable wandb
 wandb online
@@ -47,7 +48,7 @@ wandb login
 # python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # Train 4ch from scratch with partitions
-# python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped-partitioned.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped-partitioned.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 
 
