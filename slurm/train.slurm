@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="V100|A100"
+#SBATCH --constraint="A100"
 #SBATCH --account=ie-idi
 #SBATCH --time=167:00:00
 #SBATCH --nodes=1
@@ -26,6 +26,7 @@ cd ..
 cd yolov5
 pwd
 pip install -r requirements.txt --no-cache-dir
+pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # Enable wandb
 wandb online
@@ -38,12 +39,14 @@ wandb login
 # python train.py --img 1280 --batch 6 --epochs 1000 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # Train fusion from scratch
-python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+# python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # Train fusion from scratch with partitions
-# python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped-partitioned.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-cropped-partitioned.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
-# python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 8 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --device 0,1
+# python train.py --img 1280 --batch 12 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --cache --device 0,1 #,3,4,5,6,8,9
+# python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 12 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --cache --device 0,1 #,3,4,5,6,8,9
+# OMP_NUM_THREADS=1 python -m torch.distributed.run --nproc_per_node 2 train.py --img 1280 --batch 12 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --cache --device 0,1 #,3,4,5,6,8,9
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
 # python val.py --weights rgb.pt --img 1280 # --save-txt --save-conf 
 
