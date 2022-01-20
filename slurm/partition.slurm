@@ -15,7 +15,6 @@ WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
 uname -a
-pip freeze --user | xargs pip uninstall -y
 module purge
 module load Python/3.8.6-GCCcore-10.2.0
 # module load PyTorch/1.7.1-fosscuda-2020b
@@ -23,7 +22,7 @@ module load Python/3.8.6-GCCcore-10.2.0
 cd ..
 cd preprocessing
 pwd
-pip install numpy opencv-python scikit-image --no-cache-dir
+# pip install numpy opencv-python scikit-image --no-cache-dir
 
 python -u transform.py
 
