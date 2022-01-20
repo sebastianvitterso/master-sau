@@ -16,7 +16,7 @@ WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
 
 uname -a
-pip freeze --user | xargs pip uninstall -y
+
 module purge
 module load fosscuda/2020b
 module load Python/3.8.6-GCCcore-10.2.0
@@ -25,13 +25,15 @@ module load Python/3.8.6-GCCcore-10.2.0
 cd ..
 cd yolov5
 pwd
-pip install -r requirements.txt --no-cache-dir
-pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
+# # Unused pip installs, which need to be done before running
+# pip install -r requirements.txt --no-cache-dir --user
+# pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html --user
 
 # Enable wandb
 wandb online
-wandb login
-# Disable wandb
+# wandb login
+
+# # Disable wandb
 # wandb disabled
 
 # Train from pretrained weights
@@ -39,7 +41,7 @@ wandb login
 # python train.py --img 1280 --batch 6 --epochs 1000 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # Train from scratch
-python train.py --img 1280 --batch 16 --epochs 1000 --data sheep-partitioned.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+python train.py --img 1280 --batch 14 --epochs 2000 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # Train from scratch with partitions
 # python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-partitioned.yaml --weights yolov5l6.pt --cache --device 0

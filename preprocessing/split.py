@@ -3,8 +3,8 @@ import shutil
 from helpers import GET_VALIDATION_SET_FILEROOTS
     
 # base folders
-TRAIN_BASE_FOLDER = '../../data-cropped-partitioned/train/'
-VALIDATION_BASE_FOLDER = '../../data-cropped-partitioned/validation/'
+TRAIN_BASE_FOLDER = '../../data/train/'
+VALIDATION_BASE_FOLDER = '../../data/validation/'
 
 # base folder structure
 RGB_FOLDER = 'images/'
@@ -12,7 +12,7 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
     
 
-validation_set_fileroots = GET_VALIDATION_SET_FILEROOTS((3,2)) # Partition: (4,3) , Cropped: (3,2)
+validation_set_fileroots = GET_VALIDATION_SET_FILEROOTS() # Partition: (4,3) , Cropped: (3,2)
 moved_rgb = 0
 moved_ir = 0
 # Move validation images and labels
