@@ -12,7 +12,7 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
     
 
-validation_set_fileroots = GET_VALIDATION_SET_FILEROOTS((3,2)) # Partition: (4,3) , Cropped: (3,2)
+validation_set_fileroots = GET_VALIDATION_SET_FILEROOTS() # Partition: (4,3) , Cropped: (3,2)
 moved_rgb = 0
 moved_ir = 0
 # Move validation images and labels
