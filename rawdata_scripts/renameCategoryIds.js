@@ -4,7 +4,7 @@ import path from 'path';
 
 // HELPERS
 
-const LABELS_PATH = path.resolve('../raw_data/kari/labels/')
+const LABELS_PATH = path.resolve('../raw_data/hallvard/labels/')
 
 // SCRIPT
 
@@ -16,7 +16,16 @@ const categoriesConverter = {
   '4': '0', 
 }
 
-let distribution = {
+let oldDistribution = {
+  '0': 0,
+  '1': 0,
+  '2': 0,
+  '3': 0,
+  '4': 0,
+  '5': 0,
+  '6': 0,
+}
+let newDistribution = {
   '0': 0,
   '1': 0,
   '2': 0,
@@ -44,7 +53,8 @@ function renameCategoryId(name) {
     const oldIds = rows.map(r => r[0])
     const newIds = oldIds.map(id => categoriesConverter[id])
 
-    oldIds.forEach(id => distribution[id]++)
+    oldIds.forEach(id => oldDistribution[id]++)
+    newIds.forEach(id => newDistribution[id]++)
   
     // Replace old with new
     rows.forEach(r => r[0] = newIds.shift())
@@ -68,6 +78,7 @@ for (const fileName of labels) {
   renameCategoryId(fileName)
 }
   
-console.log('New distribution: ', distribution)
+console.log('Old distribution: ', oldDistribution)
+console.log('New distribution: ', newDistribution)
 
 
