@@ -1,7 +1,7 @@
 import { readdir} from 'fs/promises';
 import { readFileSync, unlinkSync, existsSync, renameSync} from 'fs';
 
-const DELETE_LABEL = false
+const DELETE_LABEL = true
 
 const BASE_FOLDER = '../../'
 
@@ -10,7 +10,7 @@ const DATA_CROPPED_FOLDER = BASE_FOLDER + 'data-cropped/' // Should probably not
 const DATA_CROPPED_PARTITIONED_FOLDER = BASE_FOLDER + 'data-cropped-partitioned/'
 const DATA_PARTITIONED_FOLDER = BASE_FOLDER + 'data-partitioned/'
 // YOU CAN CHANGE THIS!
-const SELECTED_DATA_FOLDER = DATA_PARTITIONED_FOLDER // e.g. '../../data-partitioned/'
+const SELECTED_DATA_FOLDER = DATA_FOLDER // e.g. '../../data-partitioned/'
 
 
 const DATA_SET_TRAIN_FOLDER = SELECTED_DATA_FOLDER + 'train/'

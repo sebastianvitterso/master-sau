@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sbatch partition.slurm
+rm partition.out
+tail -F partition.out

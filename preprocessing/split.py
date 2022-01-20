@@ -3,8 +3,8 @@ import shutil
 from helpers import GET_VALIDATION_SET_FILEROOTS
     
 # base folders
-TRAIN_BASE_FOLDER = '../../data-cropped-partitioned/train/'
-VALIDATION_BASE_FOLDER = '../../data-cropped-partitioned/validation/'
+TRAIN_BASE_FOLDER = '../../data/train/'
+VALIDATION_BASE_FOLDER = '../../data/validation/'
 
 # base folder structure
 RGB_FOLDER = 'images/'
