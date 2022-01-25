@@ -124,6 +124,33 @@ class LabelSet():
         partition_labels = list(filter(lambda partition_label: partition_label.area() > 0, partition_labels))
         return LabelSet(partition_labels, self.is_cropped, partition_coordinates)
 
+    def should_show(self, prediction_label_set:'LabelSet'):
+
+        for ground_truth_label in self.labels:
+            has_overlap = False
+            for prediction_label in prediction_label_set.labels:
+
+                if ground_truth_label.getIntersection(prediction_label) > 0.2 * ground_truth_label.area():
+                    has_overlap = True
+
+            if not has_overlap:
+                return True
+
+        for prediction_label in prediction_label_set.labels:
+            has_overlap = False
+            for ground_truth_label in self.labels:
+
+                if prediction_label.getIntersection(ground_truth_label) > 0.2 * prediction_label.area():
+                    has_overlap = True
+
+            if not has_overlap:
+                return True
+
+        return False
+
+
+
+
 
 
 
@@ -345,7 +372,9 @@ class GridLabel():
         # Make a spoofy Label for this GridLabel, to get the intersection area of the given Label and this GridLabel.
         # Then divide that intersection area by the total area of the given label.
         ((x_min, x_max), (y_min, y_max)) = self.bounding_box
-        return label.getIntersection(Label(y_min, y_max, x_min, x_max, -1, label.is_cropped)) / label.area()
+        if label.area():
+            return label.getIntersection(Label(y_min, y_max, x_min, x_max, -1, label.is_cropped)) / label.area() 
+        return 0
 
 
 
