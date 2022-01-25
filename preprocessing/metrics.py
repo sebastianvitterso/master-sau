@@ -114,7 +114,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         for label in ground_truth_label_set.labels:
             ground_truth_image = cv2.rectangle(ground_truth_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
 
-        plt.subplot(1, 2, 1)
+        plt.subplot(2, 2, 1)
         plt.gca().set_title('Ground truth - ' + fileroot)
         plt.imshow(ground_truth_image)
 
@@ -134,9 +134,14 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
             prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
 
 
-        plt.subplot(1, 2, 2)
+        plt.subplot(2, 2, 2)
         plt.gca().set_title('Predictions')
         plt.imshow(prediction_image)
+
+        if(use_ir):
+            plt.subplot(2, 2, 3)
+            plt.gca().set_title('IR')
+            plt.imshow(cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB))
 
         plt.get_current_fig_manager().full_screen_toggle()
         plt.tight_layout()
@@ -195,5 +200,5 @@ def calculate_metrics_for_confidences():
 if __name__ == "__main__":
     # calculate_metrics_for_confidences()
 
-    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=False, show_print=False)
+    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=True, show_print=True)
 
