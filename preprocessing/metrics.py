@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from models import LabelSet, Image, GridLabelSet, GridLabel
 
 # base folders
-INPUT_BASE_FOLDER = '../../data/train/'
+INPUT_BASE_FOLDER = '../../data/validation/'
 CROPPED_BASE_FOLDER = '../../data-cropped/validation/'
 PARTITION_BASE_FOLDER = '../../data-partitioned/validation/'
 CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
@@ -19,7 +19,7 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/exp2/labels/'
+PREDICTION_FOLDER = '../yolov5/runs/val/exp3/labels/'
 
 
 
@@ -61,6 +61,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
     sklearn_aps = average_precision_score(ground_truth, predictions)
 
     if show_print:
+        print("GRID METRICS")
         print("sklearn_aps:", sklearn_aps)
         print("precision:", precision)
         print("recall:", recall)
@@ -143,7 +144,29 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
     return sklearn_aps, total_sheep_count, found_sheep_count, precision, recall
 
-def findMetricsForConfidences():
+def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+    aps_list = []
+    precision_list = []
+    recall_list = []
+    total_sheep_count_sum = 0
+    found_sheep_count_sum = 0
+    for filename in os.listdir(PREDICTION_FOLDER):
+        fileroot = filename.split('.')[0]
+        aps, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
+        aps_list.append(aps)
+        precision_list.append(precision)
+        recall_list.append(recall)
+        total_sheep_count_sum += total_sheep_count
+        found_sheep_count_sum += found_sheep_count
+
+    print("GRID METRICS")
+    print("AP:", sum(aps_list) / len(aps_list))
+    print("Precision:", sum(precision_list) / len(precision_list))
+    print("Recall:", sum(recall_list) / len(recall_list))
+    print("Sheep recall:", found_sheep_count_sum / total_sheep_count_sum)
+    return aps_list, precision_list, recall_list, total_sheep_count_sum, found_sheep_count_sum
+
+def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
     confidences = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     conf_ap = []
@@ -155,28 +178,11 @@ def findMetricsForConfidences():
         LabelSet.label_confidence_threshold = conf
         print("\nThreshold for label confidence:", LabelSet.label_confidence_threshold)
 
-        aps_list = []
-        precision_list = []
-        recall_list = []
-        total_sheep_count_sum = 0
-        found_sheep_count_sum = 0
-        for filename in os.listdir(PREDICTION_FOLDER):
-            fileroot = filename.split('.')[0]
-            aps, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot)
-            aps_list.append(aps)
-            precision_list.append(precision)
-            recall_list.append(recall)
-            total_sheep_count_sum += total_sheep_count
-            found_sheep_count_sum += found_sheep_count
-
+        aps_list, precision_list, recall_list, total_sheep_count_sum, found_sheep_count_sum = calculate_metrics()
         conf_ap.append(sum(aps_list) / len(aps_list))
-        print("AP:", sum(aps_list) / len(aps_list))
         conf_precision.append(sum(precision_list) / len(precision_list))
-        print("Precision:", sum(precision_list) / len(precision_list))
         conf_recall.append(sum(recall_list) / len(recall_list))
-        print("Recall:", sum(recall_list) / len(recall_list))
         conf_sheep_recall.append(found_sheep_count_sum / total_sheep_count_sum)
-        print("Sheep recall:", found_sheep_count_sum / total_sheep_count_sum)
 
     plt.plot(confidences, conf_ap)
     plt.plot(confidences, conf_precision)
@@ -187,9 +193,7 @@ def findMetricsForConfidences():
 
 
 if __name__ == "__main__":
-    # findMetricsForConfidences()
+    # calculate_metrics_for_confidences()
 
-    # Find 
-    for filename in os.listdir(PREDICTION_FOLDER):
-        fileroot = filename.split('.')[0]
-        get_metrics(fileroot, partition_coordinates=None, use_ir=False, show_image=True, show_print=True)
+    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=False, show_print=False)
+
