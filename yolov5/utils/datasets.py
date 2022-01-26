@@ -445,7 +445,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.labels = list(labels)
         self.shapes = np.array(shapes, dtype=np.float64)
         self.img_files = list(cache.keys())  # update
-        self.ir_files = rgb2ir_paths(self.img_files)
+        self.ir_files = rgb2ir_paths(cache.keys())
         self.label_files = img2label_paths(cache.keys())  # update
 
         if single_cls:
@@ -486,14 +486,15 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         # Cache images into memory for faster training (WARNING: large datasets may exceed system RAM)
         self.imgs, self.img_npy = [None] * n, [None] * n
+        self.irs, self.ir_npy = [None] * n, [None] * n
         if cache_images:
             if cache_images == 'disk':
                 self.im_cache_dir = Path(Path(self.img_files[0]).parent.as_posix() + '_npy')
                 self.img_npy = [self.im_cache_dir / Path(f).with_suffix('.npy').name for f in self.img_files]
                 self.im_cache_dir.mkdir(parents=True, exist_ok=True)
-                # self.ir_cache_dir = Path(Path(self.ir_files[0]).parent.as_posix() + '_npy')
-                # self.ir_npy = [self.ir_cache_dir / Path(f).with_suffix('.npy').name for f in self.ir_files]
-                # self.ir_cache_dir.mkdir(parents=True, exist_ok=True)
+                self.ir_cache_dir = Path(Path(self.ir_files[0]).parent.as_posix() + '_npy')
+                self.ir_npy = [self.ir_cache_dir / Path(f).with_suffix('.npy').name for f in self.ir_files]
+                self.ir_cache_dir.mkdir(parents=True, exist_ok=True)
             gb = 0  # Gigabytes of cached images
             self.img_hw0, self.img_hw = [None] * n, [None] * n
             results = ThreadPool(NUM_THREADS).imap(lambda x: load_image(*x), zip(repeat(self), range(n)))
@@ -506,7 +507,22 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 else:
                     self.imgs[i], self.img_hw0[i], self.img_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
                     gb += self.imgs[i].nbytes
-                pbar.desc = f'{prefix}Caching images ({gb / 1E9:.1f}GB {cache_images})'
+                pbar.desc = f'{prefix}Caching RGB images ({gb / 1E9:.1f}GB {cache_images})'
+            pbar.close()
+
+            gb = 0  # Gigabytes of cached images
+            self.ir_hw0, self.ir_hw = [None] * n, [None] * n
+            results = ThreadPool(NUM_THREADS).imap(lambda x: load_ir(*x), zip(repeat(self), range(n)))
+            pbar = tqdm(enumerate(results), total=n)
+            for i, x in pbar:
+                if cache_images == 'disk':
+                    if not self.ir_npy[i].exists():
+                        np.save(self.ir_npy[i].as_posix(), x[0])
+                    gb += self.ir_npy[i].stat().st_size
+                else:
+                    self.irs[i], self.ir_hw0[i], self.ir_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
+                    gb += self.irs[i].nbytes
+                pbar.desc = f'{prefix}Caching IR images ({gb / 1E9:.1f}GB {cache_images})'
             pbar.close()
 
     def cache_labels(self, path=Path('./labels.cache'), prefix=''):
