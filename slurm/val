@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sbatch val.slurm
+rm val.out
+tail -F val.out
