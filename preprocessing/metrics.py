@@ -19,7 +19,7 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
+PREDICTION_FOLDER = '../../predictions_combined/partitioned_rgb_01/'
 
 
 
@@ -132,6 +132,8 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
         for label in prediction_label_set.labels:
             prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
+            if(label.confidence < 1): # label.confidence is 1 if it's a ground truth. predictions never reach 1.0
+                prediction_image = cv2.putText(prediction_image, str(label.confidence), (label.left, label.top - 12), cv2.FONT_HERSHEY_PLAIN, 2, (255,0,0), 2, cv2.LINE_AA)
 
 
         plt.subplot(2, 2, 2) if use_ir else plt.subplot(1, 2, 2)
@@ -177,6 +179,7 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
 def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
     confidences = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    # confidences = [0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7,]
     conf_ap = []
     conf_precision = []
     conf_recall = []
@@ -192,10 +195,11 @@ def calculate_metrics_for_confidences():
         conf_recall.append(sum(recall_list) / len(recall_list))
         conf_sheep_recall.append(found_sheep_count_sum / total_sheep_count_sum)
 
-    plt.plot(confidences, conf_ap)
-    plt.plot(confidences, conf_precision)
-    plt.plot(confidences, conf_recall)
-    plt.plot(confidences, conf_sheep_recall)
+    plt.plot(confidences, conf_ap, label="ap")
+    plt.plot(confidences, conf_precision, label="precision")
+    plt.plot(confidences, conf_recall, label="recall")
+    plt.plot(confidences, conf_sheep_recall, label="sheep_recall")
+    plt.legend()
     plt.show()
 
 
@@ -203,5 +207,5 @@ def calculate_metrics_for_confidences():
 if __name__ == "__main__":
     # calculate_metrics_for_confidences()
 
-    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=False, show_print=False)
+    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=True, show_print=True)
 
