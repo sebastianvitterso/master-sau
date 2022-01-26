@@ -19,7 +19,7 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/exp3/labels/'
+PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
 
 
 
@@ -114,7 +114,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         for label in ground_truth_label_set.labels:
             ground_truth_image = cv2.rectangle(ground_truth_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
 
-        plt.subplot(2, 2, 1)
+        plt.subplot(2, 2, 1) if use_ir else plt.subplot(1, 2, 1)
         plt.gca().set_title('Ground truth - ' + fileroot)
         plt.imshow(ground_truth_image)
 
@@ -134,7 +134,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
             prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
 
 
-        plt.subplot(2, 2, 2)
+        plt.subplot(2, 2, 2) if use_ir else plt.subplot(1, 2, 2)
         plt.gca().set_title('Predictions')
         plt.imshow(prediction_image)
 
@@ -155,7 +155,10 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
     recall_list = []
     total_sheep_count_sum = 0
     found_sheep_count_sum = 0
-    for filename in os.listdir(PREDICTION_FOLDER):
+
+    filenames = os.listdir(PREDICTION_FOLDER)
+    filenames.sort()
+    for filename in filenames:
         fileroot = filename.split('.')[0]
         aps, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
         aps_list.append(aps)
@@ -200,5 +203,5 @@ def calculate_metrics_for_confidences():
 if __name__ == "__main__":
     # calculate_metrics_for_confidences()
 
-    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=True, show_print=True)
+    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=False, show_print=False)
 
