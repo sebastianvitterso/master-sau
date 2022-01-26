@@ -20,7 +20,7 @@ from helpers import RAW_SIZE_RGB, RAW_SIZE_IR, CROPPED_SIZE, PARTITION_SIZE, COR
  ####### #    # #####  ###### ######  #####  ######   #   
                                                           
 class LabelSet():
-    label_confidence_threshold = 0.5
+    label_confidence_threshold = 0.6
 
     def __init__(self, labels:'List[Label]', is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
         self.labels = labels
@@ -37,23 +37,25 @@ class LabelSet():
         is_partition = partition_coordinates is not None
         with open(file_path) as file:
             labels = list(map(lambda line:Label.fromLabelLine(line.strip(), is_cropped, is_partition), file.readlines()))
-            labels = list(filter(lambda label: label.confidence >= cls.label_confidence_threshold, labels)) # Only keep l+abels with confidence >= 0.3
+            labels = list(filter(lambda label: label.confidence >= cls.label_confidence_threshold, labels)) # Only keep labels with confidence >= 0.3
             return cls(labels, is_cropped, partition_coordinates)
 
-    def writeToFilePath(self, file_path:str):
-        label_lines = list(map(lambda label:label.toLabelLine(), self.labels))
+    def writeToFilePath(self, file_path:str, with_confidence:bool=False):
+        label_lines = list(map(lambda label:label.toLabelLine(with_confidence=with_confidence), self.labels))
         label_file_text = '\n'.join(label_lines)
         with open(file_path, 'w') as file:
             file.write(label_file_text)
 
     @classmethod
-    def fromPartitions(cls, label_sets:'List[List[LabelSet]]'):
+    def fromPartitions(cls, label_sets:'List[List[LabelSet|None]]'):
         # if the first "row" has 3 entries, the image is cropped. Otherwise, it has 4 entries, and the image isn't cropped. 
         is_cropped = len(label_sets[0]) == 3  
-        new_labels: 'List[Label]' = []
+        new_labels:'List[Label]' = []
 
         for y, partition_label_set_row in enumerate(label_sets):
             for x, partition_label_set in enumerate(partition_label_set_row):
+                if(partition_label_set is None):
+                    continue
                 offset_x, offset_y = GET_PARTITION_TOP_LEFT_CORNER(x, y, is_cropped)
                 for label in partition_label_set.labels:
                     new_label = Label(
@@ -72,7 +74,7 @@ class LabelSet():
         new_label_set.nonMaxSuppression()
         return new_label_set
 
-    def nonMaxSuppression(self, threshold=0.0):
+    def nonMaxSuppression(self, iou_threshold=0.45):
         remaining_labels = self.labels.copy()
         kept_labels:'List[Label]' = []
         while len(remaining_labels) > 0:
@@ -87,7 +89,7 @@ class LabelSet():
             kept_labels.append(keep_label)
 
             for label in remaining_labels.copy():
-                if(keep_label.getIntersectionOverUnion(label) > threshold):
+                if(keep_label.getIntersectionOverUnion(label) > iou_threshold):
                     remaining_labels.remove(label)
 
         self.labels = kept_labels
@@ -203,7 +205,7 @@ class Label():
 
         return cls(top, bottom, left, right, category, is_cropped, confidence=confidence)
 
-    def toLabelLine(self):
+    def toLabelLine(self, with_confidence:bool=False):
         SIZE = PARTITION_SIZE if self.is_partition else (CROPPED_SIZE if self.is_cropped else RAW_SIZE_RGB)
         center_x_px = (self.left + self.right) / 2
         center_y_px = (self.top + self.bottom) / 2
@@ -219,6 +221,9 @@ class Label():
         assert center_x_relative - (width_relative / 2) >= 0
         assert center_y_relative + (height_relative / 2) <= 1
         assert center_y_relative - (height_relative / 2) >= 0
+
+        if with_confidence:
+            return f"{self.category} {center_x_relative} {center_y_relative} {width_relative} {height_relative} {self.confidence}"
 
         return f"{self.category} {center_x_relative} {center_y_relative} {width_relative} {height_relative}"
 
@@ -269,7 +274,9 @@ class Label():
         return self.area() + label.area() - self.getIntersection(label)
 
     def getIntersectionOverUnion(self, label:'Label'):
-        return self.getIntersection(label) / self.getUnion(label)
+        intersection = self.getIntersection(label)
+        union = self.getUnion(label)
+        return intersection / union if intersection > 0 else 0
 
 
 

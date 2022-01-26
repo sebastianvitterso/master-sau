@@ -19,7 +19,7 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/exp3/labels/'
+PREDICTION_FOLDER = '../../predictions_combined/partitioned_rgb_01/'
 
 
 
@@ -114,7 +114,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         for label in ground_truth_label_set.labels:
             ground_truth_image = cv2.rectangle(ground_truth_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
 
-        plt.subplot(1, 2, 1)
+        plt.subplot(2, 2, 1) if use_ir else plt.subplot(1, 2, 1)
         plt.gca().set_title('Ground truth - ' + fileroot)
         plt.imshow(ground_truth_image)
 
@@ -132,11 +132,18 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
         for label in prediction_label_set.labels:
             prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
+            if(label.confidence < 1): # label.confidence is 1 if it's a ground truth. predictions never reach 1.0
+                prediction_image = cv2.putText(prediction_image, str(label.confidence), (label.left, label.top - 12), cv2.FONT_HERSHEY_PLAIN, 2, (255,0,0), 2, cv2.LINE_AA)
 
 
-        plt.subplot(1, 2, 2)
+        plt.subplot(2, 2, 2) if use_ir else plt.subplot(1, 2, 2)
         plt.gca().set_title('Predictions')
         plt.imshow(prediction_image)
+
+        if(use_ir):
+            plt.subplot(2, 2, 3)
+            plt.gca().set_title('IR')
+            plt.imshow(cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB))
 
         plt.get_current_fig_manager().full_screen_toggle()
         plt.tight_layout()
@@ -150,7 +157,10 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
     recall_list = []
     total_sheep_count_sum = 0
     found_sheep_count_sum = 0
-    for filename in os.listdir(PREDICTION_FOLDER):
+
+    filenames = os.listdir(PREDICTION_FOLDER)
+    filenames.sort()
+    for filename in filenames:
         fileroot = filename.split('.')[0]
         aps, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
         aps_list.append(aps)
@@ -169,6 +179,7 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
 def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
     confidences = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    # confidences = [0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7,]
     conf_ap = []
     conf_precision = []
     conf_recall = []
@@ -184,10 +195,11 @@ def calculate_metrics_for_confidences():
         conf_recall.append(sum(recall_list) / len(recall_list))
         conf_sheep_recall.append(found_sheep_count_sum / total_sheep_count_sum)
 
-    plt.plot(confidences, conf_ap)
-    plt.plot(confidences, conf_precision)
-    plt.plot(confidences, conf_recall)
-    plt.plot(confidences, conf_sheep_recall)
+    plt.plot(confidences, conf_ap, label="ap")
+    plt.plot(confidences, conf_precision, label="precision")
+    plt.plot(confidences, conf_recall, label="recall")
+    plt.plot(confidences, conf_sheep_recall, label="sheep_recall")
+    plt.legend()
     plt.show()
 
 
@@ -195,5 +207,5 @@ def calculate_metrics_for_confidences():
 if __name__ == "__main__":
     # calculate_metrics_for_confidences()
 
-    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=False, show_print=False)
+    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=True, show_print=True)
 
