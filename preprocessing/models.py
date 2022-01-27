@@ -128,6 +128,7 @@ class LabelSet():
 
     def should_show(self, prediction_label_set:'LabelSet'):
 
+        # False negatives
         for ground_truth_label in self.labels:
             has_overlap = False
             for prediction_label in prediction_label_set.labels:
@@ -138,6 +139,7 @@ class LabelSet():
             if not has_overlap:
                 return True
 
+        # False positives
         for prediction_label in prediction_label_set.labels:
             has_overlap = False
             for ground_truth_label in self.labels:
