@@ -126,7 +126,7 @@ class LabelSet():
         partition_labels = list(filter(lambda partition_label: partition_label.area() > 0, partition_labels))
         return LabelSet(partition_labels, self.is_cropped, partition_coordinates)
 
-    def should_show(self, prediction_label_set:'LabelSet'):
+    def has_mismatch(self, prediction_label_set:'LabelSet'):
 
         # False negatives
         for ground_truth_label in self.labels:
@@ -151,6 +151,36 @@ class LabelSet():
                 return True
 
         return False
+
+    def compare(self, prediction_label_set:'LabelSet', iou_threshold=0.5):
+        """ Should be used like this: `ground_truth_label_set.compare(prediction_label_set)` """
+
+        tp = 0 # true positive counter
+        tn = 0 # true negative counter
+        fp = 0 # false positive counter
+        fn = 0 # false negative counter
+
+        ground_truth_labels = self.labels.copy()
+        prediction_labels = prediction_label_set.labels.copy()
+        prediction_labels.sort(key=(lambda l: l.confidence), reverse=True)
+        for prediction_label in prediction_labels.copy():
+            found_match = False
+            ground_truth_labels.sort(key=(lambda l: l.getIntersectionOverUnion(prediction_label)), reverse=True)
+            for ground_truth_label in ground_truth_labels.copy():
+                if prediction_label.getIntersectionOverUnion(ground_truth_label) > iou_threshold:
+                    tp += 1
+                    found_match = True
+                    ground_truth_labels.remove(ground_truth_label)
+                    break
+
+            if not found_match:
+                fp += 1
+
+        fn = len(ground_truth_labels)
+        total_sheep_count = len(self.labels)
+        found_sheep_count = tp
+
+        return (tp, tn, fp, fn, total_sheep_count, found_sheep_count)
 
 
 

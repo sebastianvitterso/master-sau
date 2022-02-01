@@ -19,11 +19,36 @@ IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/'
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../../predictions_combined/partitioned_rgb_01/'
+PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
 
+def compute_ap(recall, precision):
+    """ Compute the average precision, given the recall and precision curves
+    # Arguments
+        recall:    The recall curve (list)
+        precision: The precision curve (list)
+    # Returns
+        Average precision, precision curve, recall curve
+    """
 
+    # Append sentinel values to beginning and end
+    mrec = np.concatenate(([0.0], recall, [1.0]))
+    mpre = np.concatenate(([1.0], precision, [0.0]))
 
-def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+    # Compute the precision envelope
+    mpre = np.flip(np.maximum.accumulate(np.flip(mpre)))
+
+    # Integrate area under curve
+    method = 'interp'  # methods: 'continuous', 'interp'
+    if method == 'interp':
+        x = np.linspace(0, 1, 101)  # 101-point interp (COCO)
+        ap = np.trapz(np.interp(x, mrec, mpre), x)  # integrate
+    else:  # 'continuous'
+        i = np.where(mrec[1:] != mrec[:-1])[0]  # points where x axis (recall) changes
+        ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])  # area under curve
+
+    return ap, mpre, mrec
+
+def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
     '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
      #####                          #     #                                     
@@ -48,7 +73,10 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
     prediction_label_set = LabelSet.loadFromFilePath(PREDICTION_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
     prediction_grid_label_set = GridLabelSet.from_label_set(prediction_label_set, is_prediction=True)
 
-    (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
+    if use_grid:
+        (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
+    else:
+        (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_label_set.compare(prediction_label_set)
     
     precision = tp / (tp + fp) if tp > 0 else 0
     recall = tp / (tp + fn) if tp > 0 else 0
@@ -57,12 +85,23 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
     ground_truth = np.concatenate([np.ones(tp), np.ones(fn), np.zeros(tn), np.zeros(fp)])
     predictions =  np.concatenate([np.ones(tp), np.zeros(fn), np.zeros(tn), np.ones(fp)])
+    
     # This is the one Kari used in her metrics
     sklearn_aps = average_precision_score(ground_truth, predictions)
 
+
+    # TODO: Still bit unsure if this is correct
+    tpc = np.concatenate([np.zeros(fp), np.ones(tp)]).cumsum(0)
+    fpc = np.concatenate([np.ones(fp), np.zeros(tp)]).cumsum(0)
+    recall_curve = tpc / (tp + fn + 1e-16)  # recall curve
+    precision_curve = tpc / (tpc + fpc)  # precision curve
+
+    ap50s, mpre, mrec = compute_ap(recall_curve, precision_curve)
+
     if show_print:
-        print("GRID METRICS")
+        print("METRICS")
         print("sklearn_aps:", sklearn_aps)
+        print("ap50s:", ap50s)
         print("precision:", precision)
         print("recall:", recall)
         print("sheep_recall:", sheep_recall)
@@ -81,7 +120,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
      #####  #    #  ####  #    #     # #    # #    #  ####  ###### 
     
 
-    if(show_image and ground_truth_label_set.should_show(prediction_label_set)):
+    if(show_image and ground_truth_label_set.has_mismatch(prediction_label_set)):
         log_string = f"Showing image {fileroot}, {'with' if use_ir else 'without'} IR."
         if(partition_coordinates is not None):
             log_string += f" Partition: {partition_coordinates}."
@@ -133,7 +172,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         for label in prediction_label_set.labels:
             prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
             if(label.confidence < 1): # label.confidence is 1 if it's a ground truth. predictions never reach 1.0
-                prediction_image = cv2.putText(prediction_image, str(label.confidence), (label.left, label.top - 12), cv2.FONT_HERSHEY_PLAIN, 2, (255,0,0), 2, cv2.LINE_AA)
+                prediction_image = cv2.putText(prediction_image, f'{label.confidence:.2}', (label.left, label.top - 12), cv2.FONT_HERSHEY_PLAIN, 4, (255,0,0), 4, cv2.LINE_AA)
 
 
         plt.subplot(2, 2, 2) if use_ir else plt.subplot(1, 2, 2)
@@ -141,18 +180,22 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         plt.imshow(prediction_image)
 
         if(use_ir):
+            ir_image = cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB)
+            for label in ground_truth_label_set.labels:
+                ir_image = cv2.rectangle(ir_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
             plt.subplot(2, 2, 3)
             plt.gca().set_title('IR')
-            plt.imshow(cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB))
+            plt.imshow(ir_image)
 
         plt.get_current_fig_manager().full_screen_toggle()
         plt.tight_layout()
         plt.show()
 
-    return sklearn_aps, total_sheep_count, found_sheep_count, precision, recall
+    return sklearn_aps, ap50s, total_sheep_count, found_sheep_count, precision, recall
 
-def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
     aps_list = []
+    ap50s_list = []
     precision_list = []
     recall_list = []
     total_sheep_count_sum = 0
@@ -162,15 +205,17 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
     filenames.sort()
     for filename in filenames:
         fileroot = filename.split('.')[0]
-        aps, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
+        aps, ap50s, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot, partition_coordinates, use_grid, use_ir, show_image, show_print)
+        ap50s_list.append(ap50s)
         aps_list.append(aps)
         precision_list.append(precision)
         recall_list.append(recall)
         total_sheep_count_sum += total_sheep_count
         found_sheep_count_sum += found_sheep_count
 
-    print("GRID METRICS")
+    print("METRICS")
     print("AP:", sum(aps_list) / len(aps_list))
+    print("AP@.5:", sum(ap50s_list) / len(ap50s_list))
     print("Precision:", sum(precision_list) / len(precision_list))
     print("Recall:", sum(recall_list) / len(recall_list))
     print("Sheep recall:", found_sheep_count_sum / total_sheep_count_sum)
@@ -207,5 +252,5 @@ def calculate_metrics_for_confidences():
 if __name__ == "__main__":
     # calculate_metrics_for_confidences()
 
-    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=True, show_print=True)
+    calculate_metrics(partition_coordinates=None, use_grid=False, use_ir=False, show_image=False, show_print=False)
 
