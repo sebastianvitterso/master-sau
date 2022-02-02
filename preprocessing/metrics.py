@@ -76,39 +76,22 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
     if use_grid:
         (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
     else:
-        (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_label_set.compare(prediction_label_set)
+        (tp, fp, conf, cats) = ground_truth_label_set.compare(prediction_label_set)
     
-    precision = tp / (tp + fp) if tp > 0 else 0
-    recall = tp / (tp + fn) if tp > 0 else 0
-
-    sheep_recall = found_sheep_count / total_sheep_count
-
-    ground_truth = np.concatenate([np.ones(tp), np.ones(fn), np.zeros(tn), np.zeros(fp)])
-    predictions =  np.concatenate([np.ones(tp), np.zeros(fn), np.zeros(tn), np.ones(fp)])
-    
-    # This is the one Kari used in her metrics
-    sklearn_aps = average_precision_score(ground_truth, predictions)
-
-
-    # TODO: Still bit unsure if this is correct
-    tpc = np.concatenate([np.zeros(fp), np.ones(tp)]).cumsum(0)
-    fpc = np.concatenate([np.ones(fp), np.zeros(tp)]).cumsum(0)
-    recall_curve = tpc / (tp + fn + 1e-16)  # recall curve
-    precision_curve = tpc / (tpc + fpc)  # precision curve
-
-    ap50s, mpre, mrec = compute_ap(recall_curve, precision_curve)
+    total_sheep_count = len(ground_truth_label_set.labels)
 
     if show_print:
         print("METRICS")
-        print("sklearn_aps:", sklearn_aps)
-        print("ap50s:", ap50s)
-        print("precision:", precision)
-        print("recall:", recall)
-        print("sheep_recall:", sheep_recall)
-        print("true_positive_count:", tp)
-        print("true_negative_count:", tn)
-        print("false_postive_count:", fp)
-        print("false_negative_count:", fn)
+        print("true_positive_count:", sum(tp))
+        # print("true_negative_count:", tn)
+        print("false_postive_count:", sum(fp))
+        # print("false_negative_count:", fn)
+
+    if(show_image and ground_truth_label_set.has_mismatch(prediction_label_set)):
+        labels = (ground_truth_label_set, ground_truth_grid_label_set, prediction_label_set, prediction_grid_label_set)
+        display_image(fileroot, base_folder, labels, None, use_grid=use_grid, use_ir=use_ir)
+
+    return tp, fp, conf, total_sheep_count
 
 
      #####                           #                            
@@ -119,8 +102,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
     #     # #    # #    # ##  ##     # #    # #    # #    # #      
      #####  #    #  ####  #    #     # #    # #    #  ####  ###### 
     
-
-    if(show_image and ground_truth_label_set.has_mismatch(prediction_label_set)):
+def display_image(fileroot:str, base_folder:str, labels, partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False):
         log_string = f"Showing image {fileroot}, {'with' if use_ir else 'without'} IR."
         if(partition_coordinates is not None):
             log_string += f" Partition: {partition_coordinates}."
@@ -141,6 +123,7 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
         # GROUND TRUTH
         ground_truth_image = base_image.copy()
+        (ground_truth_label_set, ground_truth_grid_label_set, prediction_label_set, prediction_grid_label_set) = labels
 
         for ix, iy in np.ndindex(ground_truth_grid_label_set.grid.shape):
             grid_label:GridLabel = ground_truth_grid_label_set.grid[ix, iy]
@@ -191,41 +174,55 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         plt.tight_layout()
         plt.show()
 
-    return sklearn_aps, ap50s, total_sheep_count, found_sheep_count, precision, recall
 
 def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
-    aps_list = []
-    ap50s_list = []
-    precision_list = []
-    recall_list = []
+    
+    total_tp = np.array([]) # true positive counter
+    total_fp = np.array([]) # false positive counter
     total_sheep_count_sum = 0
-    found_sheep_count_sum = 0
 
     filenames = os.listdir(PREDICTION_FOLDER)
     filenames.sort()
     for filename in filenames:
         fileroot = filename.split('.')[0]
-        aps, ap50s, total_sheep_count, found_sheep_count, precision, recall = get_metrics(fileroot, partition_coordinates, use_grid, use_ir, show_image, show_print)
-        ap50s_list.append(ap50s)
-        aps_list.append(aps)
-        precision_list.append(precision)
-        recall_list.append(recall)
+        tp, fp, conf, total_sheep_count = get_metrics(fileroot, partition_coordinates, use_grid, use_ir, show_image, show_print)
+        total_tp = np.concatenate([total_tp, tp])
+        total_fp = np.concatenate([total_fp, fp])
         total_sheep_count_sum += total_sheep_count
-        found_sheep_count_sum += found_sheep_count
+
+    precision = sum(total_tp) / (sum(total_tp) + sum(total_fp)) if sum(total_tp) > 0 else 0
+    recall = sum(total_tp) / total_sheep_count_sum if sum(total_tp) > 0 else 0
+
+    # ground_truth = np.concatenate([np.ones(tp), np.ones(fn), np.zeros(tn), np.zeros(fp)])
+    # predictions =  np.concatenate([np.ones(tp), np.zeros(fn), np.zeros(tn), np.ones(fp)])
+    
+    # # This is the one Kari used in her metrics
+    # sklearn_aps = average_precision_score(ground_truth, predictions)
+
+    # Sort by confidence
+    sort_order = np.argsort(-conf)
+    total_tp, total_fp, conf = total_tp[sort_order], total_fp[sort_order], conf[sort_order]
+
+    # TODO: Still bit unsure if this is correct
+    tpc = total_tp.cumsum(0)
+    fpc = total_fp.cumsum(0)
+    recall_curve = tpc / (total_sheep_count + 1e-16)  # recall curve
+    precision_curve = tpc / (tpc + fpc + 1e-16)  # precision curve
+
+    ap50s, mpre, mrec = compute_ap(recall_curve, precision_curve)
 
     print("METRICS")
-    print("AP:", sum(aps_list) / len(aps_list))
-    print("AP@.5:", sum(ap50s_list) / len(ap50s_list))
-    print("Precision:", sum(precision_list) / len(precision_list))
-    print("Recall:", sum(recall_list) / len(recall_list))
-    print("Sheep recall:", found_sheep_count_sum / total_sheep_count_sum)
-    return aps_list, precision_list, recall_list, total_sheep_count_sum, found_sheep_count_sum
+    print("AP@.5:", ap50s)
+    print("Precision:", precision)
+    print("Recall:", recall)
+    return ap50s, precision, recall, total_sheep_count_sum
 
 def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
     confidences = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # confidences = [0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7,]
     conf_ap = []
+    conf_ap50s = []
     conf_precision = []
     conf_recall = []
     conf_sheep_recall = []
@@ -234,13 +231,15 @@ def calculate_metrics_for_confidences():
         LabelSet.label_confidence_threshold = conf
         print("\nThreshold for label confidence:", LabelSet.label_confidence_threshold)
 
-        aps_list, precision_list, recall_list, total_sheep_count_sum, found_sheep_count_sum = calculate_metrics()
-        conf_ap.append(sum(aps_list) / len(aps_list))
-        conf_precision.append(sum(precision_list) / len(precision_list))
-        conf_recall.append(sum(recall_list) / len(recall_list))
+        sklearn_aps, ap50s, precision, recall, total_sheep_count_sum, found_sheep_count_sum = calculate_metrics()
+        conf_ap.append(sklearn_aps)
+        conf_ap50s.append(ap50s)
+        conf_precision.append(precision)
+        conf_recall.append(recall)
         conf_sheep_recall.append(found_sheep_count_sum / total_sheep_count_sum)
 
     plt.plot(confidences, conf_ap, label="ap")
+    plt.plot(confidences, conf_ap50s, label="ap50s")
     plt.plot(confidences, conf_precision, label="precision")
     plt.plot(confidences, conf_recall, label="recall")
     plt.plot(confidences, conf_sheep_recall, label="sheep_recall")
