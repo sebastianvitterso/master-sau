@@ -155,6 +155,10 @@ class LabelSet():
     def compare(self, prediction_label_set:'LabelSet', iou_threshold=0.5):
         """ Should be used like this: `ground_truth_label_set.compare(prediction_label_set)` """
 
+        categories = np.unique(lambda l: l.category for l in self.labels)
+        stats = {}
+        for category in categories:
+            stats[category] = {'tp': 0, 'fn': 0}
         tp = 0 # true positive counter
         tn = 0 # true negative counter
         fp = 0 # false positive counter
@@ -169,6 +173,7 @@ class LabelSet():
             for ground_truth_label in ground_truth_labels.copy():
                 if prediction_label.getIntersectionOverUnion(ground_truth_label) > iou_threshold:
                     tp += 1
+                    stats[ground_truth_label.category]['tp'] += 1
                     found_match = True
                     ground_truth_labels.remove(ground_truth_label)
                     break
@@ -177,6 +182,8 @@ class LabelSet():
                 fp += 1
 
         fn = len(ground_truth_labels)
+        for label in ground_truth_labels:
+            stats[label.category]['fn'] += 1
         total_sheep_count = len(self.labels)
         found_sheep_count = tp
 
