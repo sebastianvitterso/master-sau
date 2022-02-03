@@ -1,4 +1,5 @@
 
+from collections import defaultdict
 import os
 import cv2
 import numpy as np
@@ -16,10 +17,13 @@ CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
 # base folder structure
 RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
-LABEL_FOLDER = 'labels/'
+LABEL_FOLDER = 'color_labels/' # change this to wherever your colored/occluded labels are at
 
 # probably found in a validation run
 PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
+
+# LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'black sheep', 1: 'brown sheep', 2: 'grey sheep', 3: 'white sheep' })
+# LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
 
 def compute_ap(recall, precision):
     """ Compute the average precision, given the recall and precision curves
@@ -66,8 +70,8 @@ def get_grid_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None,
     (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
 
     if show_image and ground_truth_label_set.has_mismatch(prediction_label_set):
-        labels = (ground_truth_label_set, ground_truth_grid_label_set, prediction_label_set, prediction_grid_label_set)
-        display_image(fileroot, base_folder, labels, None, use_grid=True, use_ir=use_ir)
+        labels = (ground_truth_label_set, prediction_label_set, ground_truth_grid_label_set, prediction_grid_label_set)
+        display_image(fileroot, base_folder, labels, partition_coordinates=partition_coordinates, use_ir=use_ir)
 
     if show_print:
         print("METRICS")
@@ -77,6 +81,8 @@ def get_grid_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None,
         print("false_negative_count:", fn)
         print("total_sheep_count:", total_sheep_count)
         print("found_sheep_count:", found_sheep_count)
+
+    return tp, tn, fp, fn, total_sheep_count, found_sheep_count
 
 
 
@@ -95,40 +101,59 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
     prediction_label_set = LabelSet.loadFromFilePath(PREDICTION_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
 
     (tp, fp, conf, cats) = ground_truth_label_set.compare(prediction_label_set)
-    
     total_sheep_count = len(ground_truth_label_set.labels)
+
+
+    # category metrics [requires categoried labels]
+
+    ground_truth_category_counter = defaultdict(lambda: 0)
+    prediction_category_counter = defaultdict(lambda: 0)
+    for label in ground_truth_label_set.labels:
+        ground_truth_category_counter[label.category] += 1
+    for category in cats[np.where(tp == 1)]: # count the category where we hit
+        prediction_category_counter[int(category)] += 1
+    # for cat, count in ground_truth_category_counter.items():
+        # prediction_count = prediction_category_counter[cat]
+        # prediction_percentage = round(100 * prediction_count / count, 1)
+        # print(f"Category '{LABEL_CATEGORIES[cat]}' ({cat}): {prediction_percentage}% ({prediction_count} / {count})")
+
+    if show_image and ground_truth_label_set.has_mismatch(prediction_label_set):
+        labels = (ground_truth_label_set, prediction_label_set, None, None)
+        display_image(fileroot, base_folder, labels, partition_coordinates=partition_coordinates, use_ir=use_ir)
 
     if show_print:
         print("METRICS")
         print("true_positive_count:", sum(tp))
         print("false_postive_count:", sum(fp))
 
-    return tp, fp, conf, total_sheep_count
+
+    return tp, fp, conf, ground_truth_category_counter, prediction_category_counter, total_sheep_count
 
 
-def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, GridLabelSet, LabelSet, GridLabelSet]', partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False):
-        log_string = f"Showing image {fileroot}, {'with' if use_ir else 'without'} IR."
-        if(partition_coordinates is not None):
-            log_string += f" Partition: {partition_coordinates}."
-        print(log_string)
+def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, LabelSet, GridLabelSet|None, GridLabelSet|None]', partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False):
+    log_string = f"Showing image {fileroot}, {'with' if use_ir else 'without'} IR."
+    if(partition_coordinates is not None):
+        log_string += f" Partition: {partition_coordinates}."
+    print(log_string)
 
-        rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition_coordinates)
-        if(use_ir):
-            ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+    rgb_image = Image.loadFromImagePath(base_folder + RGB_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+    if(use_ir):
+        ir_image = Image.loadFromImagePath(base_folder + IR_FOLDER + fileroot + ".JPG", is_cropped=use_ir, partition_coordinates=partition_coordinates)
 
-        plt.figure()
-        plt.title(fileroot)
+    plt.figure()
+    plt.title(fileroot)
 
-        base_image = cv2.cvtColor(rgb_image.img, cv2.COLOR_BGR2RGB)
+    base_image = cv2.cvtColor(rgb_image.img, cv2.COLOR_BGR2RGB)
 
-        if(use_ir):
-            base_image = cv2.cvtColor(np.maximum(rgb_image.img, ir_image.img), cv2.COLOR_BGR2RGB)
+    if(use_ir):
+        base_image = cv2.cvtColor(np.maximum(rgb_image.img, ir_image.img), cv2.COLOR_BGR2RGB)
 
 
-        # GROUND TRUTH
-        ground_truth_image = base_image.copy()
-        (ground_truth_label_set, ground_truth_grid_label_set, prediction_label_set, prediction_grid_label_set) = labels
+    # GROUND TRUTH
+    ground_truth_image = base_image.copy()
+    (ground_truth_label_set, prediction_label_set, ground_truth_grid_label_set, prediction_grid_label_set) = labels
 
+    if ground_truth_grid_label_set is not None:
         for ix, iy in np.ndindex(ground_truth_grid_label_set.grid.shape):
             grid_label:GridLabel = ground_truth_grid_label_set.grid[ix, iy]
             ((x_min, x_max), (y_min, y_max)) = grid_label.bounding_box
@@ -137,17 +162,18 @@ def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, GridLab
 
         ground_truth_image = cv2.addWeighted(base_image, 0.9, ground_truth_image, 0.1, 0)
 
-        for label in ground_truth_label_set.labels:
-            ground_truth_image = cv2.rectangle(ground_truth_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
+    for label in ground_truth_label_set.labels:
+        ground_truth_image = cv2.rectangle(ground_truth_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
 
-        plt.subplot(2, 2, 1) if use_ir else plt.subplot(1, 2, 1)
-        plt.gca().set_title('Ground truth - ' + fileroot)
-        plt.imshow(ground_truth_image)
+    plt.subplot(2, 2, 1) if use_ir else plt.subplot(1, 2, 1)
+    plt.gca().set_title('Ground truth - ' + fileroot)
+    plt.imshow(ground_truth_image)
 
 
-        # PREDICTIONS
-        prediction_image = base_image.copy()
+    # PREDICTIONS
+    prediction_image = base_image.copy()
 
+    if ground_truth_grid_label_set is not None:
         for ix, iy in np.ndindex(prediction_grid_label_set.grid.shape):
             grid_label:GridLabel = prediction_grid_label_set.grid[ix, iy]
             ((x_min, x_max), (y_min, y_max)) = grid_label.bounding_box
@@ -156,45 +182,49 @@ def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, GridLab
 
         prediction_image = cv2.addWeighted(base_image, 0.9, prediction_image, 0.1, 0)
 
-        for label in prediction_label_set.labels:
-            prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
-            if(label.confidence < 1): # label.confidence is 1 if it's a ground truth. predictions never reach 1.0
-                prediction_image = cv2.putText(prediction_image, f'{label.confidence:.2}', (label.left, label.top - 12), cv2.FONT_HERSHEY_PLAIN, 4, (255,0,0), 4, cv2.LINE_AA)
+    for label in prediction_label_set.labels:
+        prediction_image = cv2.rectangle(prediction_image, (label.left, label.top), (label.right, label.bottom), (255,0,0), 2)
+        prediction_image = cv2.putText(prediction_image, f'{label.confidence:.2}', (label.left, label.top - 12), cv2.FONT_HERSHEY_PLAIN, 4, (255,0,0), 4, cv2.LINE_AA)
+
+    plt.subplot(2, 2, 2) if use_ir else plt.subplot(1, 2, 2)
+    plt.gca().set_title('Predictions')
+    plt.imshow(prediction_image)
+
+    if(use_ir):
+        ir_image = cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB)
+        for label in ground_truth_label_set.labels:
+            ir_image = cv2.rectangle(ir_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
+        plt.subplot(2, 2, 3)
+        plt.gca().set_title('IR')
+        plt.imshow(ir_image)
+
+    plt.get_current_fig_manager().full_screen_toggle()
+    plt.tight_layout()
+    plt.show()
 
 
-        plt.subplot(2, 2, 2) if use_ir else plt.subplot(1, 2, 2)
-        plt.gca().set_title('Predictions')
-        plt.imshow(prediction_image)
-
-        if(use_ir):
-            ir_image = cv2.cvtColor(ir_image.img, cv2.COLOR_BGR2RGB)
-            for label in ground_truth_label_set.labels:
-                ir_image = cv2.rectangle(ir_image, (label.left, label.top), (label.right, label.bottom), (0,0,255), 2)
-            plt.subplot(2, 2, 3)
-            plt.gca().set_title('IR')
-            plt.imshow(ir_image)
-
-        plt.get_current_fig_manager().full_screen_toggle()
-        plt.tight_layout()
-        plt.show()
-
-# def calculate_grid_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
-
-
-def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
     
-    total_tp = np.array([]) # true positive counter
-    total_fp = np.array([]) # false positive counter
+    total_tp = np.array([]) # true positive np.array
+    total_fp = np.array([]) # false positive np.array
+    total_ground_truth_category_counter = defaultdict(lambda: 0)
+    total_prediction_category_counter = defaultdict(lambda: 0)
     total_sheep_count_sum = 0
 
     filenames = os.listdir(PREDICTION_FOLDER)
     filenames.sort()
     for filename in filenames:
-        fileroot = filename.split('.')[0]
-        tp, fp, conf, total_sheep_count = get_metrics(fileroot, partition_coordinates, use_grid, use_ir, show_image, show_print)
-        total_tp = np.concatenate([total_tp, tp])
-        total_fp = np.concatenate([total_fp, fp])
-        total_sheep_count_sum += total_sheep_count
+        try:
+            fileroot = filename.split('.')[0]
+            tp, fp, conf, ground_truth_category_counter, prediction_category_counter, total_sheep_count = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
+            total_tp = np.concatenate([total_tp, tp])
+            total_fp = np.concatenate([total_fp, fp])
+            for k,v in ground_truth_category_counter.items(): total_ground_truth_category_counter[k] += v
+            for k,v in prediction_category_counter.items(): total_prediction_category_counter[k] += v
+            total_sheep_count_sum += total_sheep_count
+        except FileNotFoundError as e:
+            print(e)
+            # I had some missing labels... :/
 
     precision = sum(total_tp) / (sum(total_tp) + sum(total_fp)) if sum(total_tp) > 0 else 0
     recall = sum(total_tp) / total_sheep_count_sum if sum(total_tp) > 0 else 0
@@ -218,12 +248,18 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_grid:boo
     print("AP@.5:", ap50s)
     print("Precision:", precision)
     print("Recall:", recall)
+
+    for cat, count in total_ground_truth_category_counter.items():
+        prediction_count = total_prediction_category_counter[cat]
+        prediction_percentage = round(100 * prediction_count / count, 1)
+        print(f"Category '{LABEL_CATEGORIES[cat]}' - Recall: {prediction_percentage}% ({prediction_count} / {count})")
+    
     return ap50s, precision, recall, total_sheep_count_sum
 
 def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
-    confidences = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    # confidences = [0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7,]
+    confidences = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7, 0.8, 0.9]
+    
     conf_ap = []
     conf_ap50s = []
     conf_precision = []
@@ -254,5 +290,5 @@ def calculate_metrics_for_confidences():
 if __name__ == "__main__":
     # calculate_metrics_for_confidences()
 
-    calculate_metrics(partition_coordinates=None, use_grid=False, use_ir=False, show_image=False, show_print=False)
+    calculate_metrics(partition_coordinates=None, use_ir=False, show_image=False, show_print=False)
 

@@ -3,7 +3,7 @@ import path from 'path';
 
 // HELPERS
 
-const LABELS_PATH = path.resolve('../raw_data/kari/labels_with_color/')
+const LABELS_PATH = path.resolve('../../data/validation/color_labels/')
 
 function fullPath(filename, basePath=LABELS_PATH) {
   return `${basePath}\\${filename}`
@@ -27,6 +27,6 @@ for (const fileName of labels) {
   const newPath = fullPath(name, LABELS_PATH)
   
   console.log(oldPath, newPath)
-  rename(oldPath, newPath)
+  await rename(oldPath, newPath)
 
 }
