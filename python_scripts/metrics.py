@@ -48,16 +48,40 @@ def compute_ap(recall, precision):
 
     return ap, mpre, mrec
 
-def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
-    '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
-     #####                          #     #                                     
-    #     # #    #  ####  #    #    ##   ## ###### ##### #####  #  ####   ####  
-    #       #    # #    # #    #    # # # # #        #   #    # # #    # #      
-     #####  ###### #    # #    #    #  #  # #####    #   #    # # #       ####  
-          # #    # #    # # ## #    #     # #        #   #####  # #           # 
-    #     # #    # #    # ##  ##    #     # #        #   #   #  # #    # #    # 
-     #####  #    #  ####  #    #    #     # ######   #   #    # #  ####   ####  
+def get_grid_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+    if show_print:
+        print(f"\nCalculating grid-metrics for {fileroot}")
+
+    base_folder = CROPPED_BASE_FOLDER if use_ir else INPUT_BASE_FOLDER
+    if(partition_coordinates is not None):
+        base_folder = PARTITION_BASE_FOLDER
+        fileroot = f"{fileroot}_p{partition_coordinates[0]}{partition_coordinates[1]}"
+
+    ground_truth_label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+    ground_truth_grid_label_set = GridLabelSet.from_label_set(ground_truth_label_set)
+    prediction_label_set = LabelSet.loadFromFilePath(PREDICTION_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+    prediction_grid_label_set = GridLabelSet.from_label_set(prediction_label_set, is_prediction=True)
+
+    (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
+
+    if show_image and ground_truth_label_set.has_mismatch(prediction_label_set):
+        labels = (ground_truth_label_set, ground_truth_grid_label_set, prediction_label_set, prediction_grid_label_set)
+        display_image(fileroot, base_folder, labels, None, use_grid=True, use_ir=use_ir)
+
+    if show_print:
+        print("METRICS")
+        print("true_positive_count:", tp)
+        print("true_negative_count:", tn)
+        print("false_positive_count:", fp)
+        print("false_negative_count:", fn)
+        print("total_sheep_count:", total_sheep_count)
+        print("found_sheep_count:", found_sheep_count)
+
+
+
+def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+    '''@param filename The filename without the filetype/ending. E.g. `2021_09_holtan_0535`'''
 
     if show_print:
         print(f"\nCalculating metrics for {fileroot}")
@@ -68,41 +92,21 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
         fileroot = f"{fileroot}_p{partition_coordinates[0]}{partition_coordinates[1]}"
 
     ground_truth_label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
-    ground_truth_grid_label_set = GridLabelSet.from_label_set(ground_truth_label_set)
-
     prediction_label_set = LabelSet.loadFromFilePath(PREDICTION_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
-    prediction_grid_label_set = GridLabelSet.from_label_set(prediction_label_set, is_prediction=True)
 
-    if use_grid:
-        (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
-    else:
-        (tp, fp, conf, cats) = ground_truth_label_set.compare(prediction_label_set)
+    (tp, fp, conf, cats) = ground_truth_label_set.compare(prediction_label_set)
     
     total_sheep_count = len(ground_truth_label_set.labels)
 
     if show_print:
         print("METRICS")
         print("true_positive_count:", sum(tp))
-        # print("true_negative_count:", tn)
         print("false_postive_count:", sum(fp))
-        # print("false_negative_count:", fn)
-
-    if(show_image and ground_truth_label_set.has_mismatch(prediction_label_set)):
-        labels = (ground_truth_label_set, ground_truth_grid_label_set, prediction_label_set, prediction_grid_label_set)
-        display_image(fileroot, base_folder, labels, None, use_grid=use_grid, use_ir=use_ir)
 
     return tp, fp, conf, total_sheep_count
 
 
-     #####                           #                            
-    #     # #    #  ####  #    #     # #    #   ##    ####  ###### 
-    #       #    # #    # #    #     # ##  ##  #  #  #    # #      
-     #####  ###### #    # #    #     # # ## # #    # #      #####  
-          # #    # #    # # ## #     # #    # ###### #  ### #      
-    #     # #    # #    # ##  ##     # #    # #    # #    # #      
-     #####  #    #  ####  #    #     # #    # #    #  ####  ###### 
-    
-def display_image(fileroot:str, base_folder:str, labels, partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False):
+def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, GridLabelSet, LabelSet, GridLabelSet]', partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False):
         log_string = f"Showing image {fileroot}, {'with' if use_ir else 'without'} IR."
         if(partition_coordinates is not None):
             log_string += f" Partition: {partition_coordinates}."
@@ -174,6 +178,8 @@ def display_image(fileroot:str, base_folder:str, labels, partition_coordinates:'
         plt.tight_layout()
         plt.show()
 
+# def calculate_grid_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
+
 
 def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_grid:bool=False, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
     
@@ -193,9 +199,6 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_grid:boo
     precision = sum(total_tp) / (sum(total_tp) + sum(total_fp)) if sum(total_tp) > 0 else 0
     recall = sum(total_tp) / total_sheep_count_sum if sum(total_tp) > 0 else 0
 
-    # ground_truth = np.concatenate([np.ones(tp), np.ones(fn), np.zeros(tn), np.zeros(fp)])
-    # predictions =  np.concatenate([np.ones(tp), np.zeros(fn), np.zeros(tn), np.ones(fp)])
-    
     # # This is the one Kari used in her metrics
     # sklearn_aps = average_precision_score(ground_truth, predictions)
 
