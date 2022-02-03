@@ -9,7 +9,7 @@
 #SBATCH --mem=12000
 #SBATCH --job-name="YOLOv5 Training for sheep recognition"
 #SBATCH --output=train.out
-#SBATCH --mail-user=sebastvi@stud.ntnu.no
+#SBATCH --mail-user=sebastvi@stud.ntnu.no,ingebrin@stud.ntnu.no
 #SBATCH --mail-type=END
 
 WORKDIR=${SLURM_SUBMIT_DIR}
