@@ -7,7 +7,7 @@
 #SBATCH --mem=12000
 #SBATCH --job-name="debug.slurm"
 #SBATCH --output=debug.out
-#SBATCH --mail-user=sebastvi@stud.ntnu.no
+#SBATCH --mail-user=sebastvi@stud.ntnu.no,ingebrin@stud.ntnu.no
 #SBATCH --mail-type=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
