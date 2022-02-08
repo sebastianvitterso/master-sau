@@ -17,13 +17,13 @@ CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
 # base folder structure
 RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
-LABEL_FOLDER = 'color_labels/' # change this to wherever your colored/occluded labels are at
+LABEL_FOLDER = 'labels/' # change this to wherever your colored/occluded labels are at
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
+PREDICTION_FOLDER = '../yolov5/runs/val/exp7/labels/'
 
 # LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'black sheep', 1: 'brown sheep', 2: 'grey sheep', 3: 'white sheep' })
-# LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
+LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
 
 def compute_ap(recall, precision):
     """ Compute the average precision, given the recall and precision curves
@@ -105,17 +105,13 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
 
     # category metrics [requires categoried labels]
-
     ground_truth_category_counter = defaultdict(lambda: 0)
     prediction_category_counter = defaultdict(lambda: 0)
     for label in ground_truth_label_set.labels:
         ground_truth_category_counter[label.category] += 1
     for category in cats[np.where(tp == 1)]: # count the category where we hit
         prediction_category_counter[int(category)] += 1
-    # for cat, count in ground_truth_category_counter.items():
-        # prediction_count = prediction_category_counter[cat]
-        # prediction_percentage = round(100 * prediction_count / count, 1)
-        # print(f"Category '{LABEL_CATEGORIES[cat]}' ({cat}): {prediction_percentage}% ({prediction_count} / {count})")
+
 
     if show_image and ground_truth_label_set.has_mismatch(prediction_label_set):
         labels = (ground_truth_label_set, prediction_label_set, None, None)

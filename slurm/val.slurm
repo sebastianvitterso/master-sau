@@ -30,5 +30,5 @@ pwd
 # pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html --user
 
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
-python val.py --weights runs/train/rgb/weights/best.pt --img 1280 --save-txt --save-conf --data sheep.yaml
+python val.py --weights runs/train/exp02/weights/best.pt --img 1280 --save-txt --save-conf --data sheep.yaml
 
