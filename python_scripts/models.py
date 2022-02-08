@@ -20,7 +20,7 @@ from helpers import RAW_SIZE_RGB, RAW_SIZE_IR, CROPPED_SIZE, PARTITION_SIZE, COR
  ####### #    # #####  ###### ######  #####  ######   #   
                                                           
 class LabelSet():
-    label_confidence_threshold = 0.5
+    label_confidence_threshold = 0.0
 
     def __init__(self, labels:'List[Label]', is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
         self.labels = labels
@@ -37,7 +37,6 @@ class LabelSet():
         is_partition = partition_coordinates is not None
         with open(file_path) as file:
             labels = list(map(lambda line:Label.fromLabelLine(line.strip(), is_cropped, is_partition), file.readlines()))
-            labels = list(filter(lambda label: label.confidence >= cls.label_confidence_threshold, labels)) # Only keep labels with confidence >= 0.3
             return cls(labels, is_cropped, partition_coordinates)
 
     def writeToFilePath(self, file_path:str, with_confidence:bool=False):
@@ -74,7 +73,7 @@ class LabelSet():
         new_label_set.nonMaxSuppression()
         return new_label_set
 
-    def nonMaxSuppression(self, iou_threshold=0.45):
+    def nonMaxSuppression(self, iou_threshold=0.45, conf_threshold=0.5):
         remaining_labels = self.labels.copy()
         kept_labels:'List[Label]' = []
         while len(remaining_labels) > 0:
@@ -93,6 +92,9 @@ class LabelSet():
                     remaining_labels.remove(label)
 
         self.labels = kept_labels
+
+    def removeLowConfidenceLabels(self, conf_threshold=0.5):
+        self.labels = list(filter(lambda label: label.confidence >= conf_threshold, self.labels)) # Only keep labels with confidence >= 0.5
 
     def crop(self):
         assert not self.is_cropped, "Don't crop a cropped label-set!"

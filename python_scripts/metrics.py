@@ -10,6 +10,7 @@ from models import LabelSet, Image, GridLabelSet, GridLabel
 
 # base folders
 INPUT_BASE_FOLDER = '../../data/validation/'
+# INPUT_BASE_FOLDER = '../../data-cropped-no-msx/validation/'
 CROPPED_BASE_FOLDER = '../../data-cropped/validation/'
 PARTITION_BASE_FOLDER = '../../data-partitioned/validation/'
 CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
@@ -18,9 +19,11 @@ CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
 RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
 LABEL_FOLDER = 'labels/' # change this to wherever your colored/occluded labels are at
+# LABEL_FOLDER = 'colored_labels/' # change this to wherever your colored/occluded labels are at
+# LABEL_FOLDER = 'obscured_labels/' # change this to wherever your colored/occluded labels are at
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/exp7/labels/'
+PREDICTION_FOLDER = '../yolov5/runs/val/exp9/labels/'
 
 # LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'black sheep', 1: 'brown sheep', 2: 'grey sheep', 3: 'white sheep' })
 LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
@@ -201,56 +204,64 @@ def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, LabelSe
 
 def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
     
-    total_tp = np.array([]) # true positive np.array
-    total_fp = np.array([]) # false positive np.array
-    total_ground_truth_category_counter = defaultdict(lambda: 0)
-    total_prediction_category_counter = defaultdict(lambda: 0)
-    total_sheep_count_sum = 0
+    tp = np.array([]) # true positive np.array
+    fp = np.array([]) # false positive np.array
+    conf = np.array([])
+    ground_truth_category_counter = defaultdict(lambda: 0)
+    prediction_category_counter = defaultdict(lambda: 0)
+    sheep_count = 0
 
     filenames = os.listdir(PREDICTION_FOLDER)
     filenames.sort()
     for filename in filenames:
         try:
             fileroot = filename.split('.')[0]
-            tp, fp, conf, ground_truth_category_counter, prediction_category_counter, total_sheep_count = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
-            total_tp = np.concatenate([total_tp, tp])
-            total_fp = np.concatenate([total_fp, fp])
-            for k,v in ground_truth_category_counter.items(): total_ground_truth_category_counter[k] += v
-            for k,v in prediction_category_counter.items(): total_prediction_category_counter[k] += v
-            total_sheep_count_sum += total_sheep_count
+            file_tp, file_fp, file_conf, file_ground_truth_category_counter, file_prediction_category_counter, file_sheep_count = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
+            tp = np.concatenate([tp, file_tp])
+            fp = np.concatenate([fp, file_fp])
+            conf = np.concatenate([conf, file_conf])
+            for k,v in file_ground_truth_category_counter.items(): ground_truth_category_counter[k] += v
+            for k,v in file_prediction_category_counter.items(): prediction_category_counter[k] += v
+            sheep_count += file_sheep_count
         except FileNotFoundError as e:
             print(e)
             # I had some missing labels... :/
-
-    precision = sum(total_tp) / (sum(total_tp) + sum(total_fp)) if sum(total_tp) > 0 else 0
-    recall = sum(total_tp) / total_sheep_count_sum if sum(total_tp) > 0 else 0
 
     # # This is the one Kari used in her metrics
     # sklearn_aps = average_precision_score(ground_truth, predictions)
 
     # Sort by confidence
     sort_order = np.argsort(-conf)
-    total_tp, total_fp, conf = total_tp[sort_order], total_fp[sort_order], conf[sort_order]
+    tp, fp, conf = tp[sort_order], fp[sort_order], conf[sort_order]
 
     # TODO: Still bit unsure if this is correct
-    tpc = total_tp.cumsum(0)
-    fpc = total_fp.cumsum(0)
-    recall_curve = tpc / (total_sheep_count + 1e-16)  # recall curve
+    tpc = tp.cumsum(0)
+    fpc = fp.cumsum(0)
+    recall_curve = tpc / (sheep_count + 1e-16)  # recall curve
     precision_curve = tpc / (tpc + fpc + 1e-16)  # precision curve
 
     ap50s, mpre, mrec = compute_ap(recall_curve, precision_curve)
+
+    px = np.linspace(0, 1, 1000)
+    r = np.interp(-px, -conf, recall_curve, left=0) # negative x, xp because xp decreases
+    p = np.interp(-px, -conf, precision_curve, left=1)  # p at pr_score
+    f1 = 2 * p * r / (p + r + 1e-16)
+    
+    i = f1.argmax()  # max F1 index
+    precision = p[i]
+    recall = r[i]
 
     print("METRICS")
     print("AP@.5:", ap50s)
     print("Precision:", precision)
     print("Recall:", recall)
 
-    for cat, count in total_ground_truth_category_counter.items():
-        prediction_count = total_prediction_category_counter[cat]
+    for cat, count in ground_truth_category_counter.items():
+        prediction_count = prediction_category_counter[cat]
         prediction_percentage = round(100 * prediction_count / count, 1)
         print(f"Category '{LABEL_CATEGORIES[cat]}' - Recall: {prediction_percentage}% ({prediction_count} / {count})")
     
-    return ap50s, precision, recall, total_sheep_count_sum
+    return ap50s, precision, recall, sheep_count
 
 def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
@@ -263,8 +274,8 @@ def calculate_metrics_for_confidences():
     conf_sheep_recall = []
 
     for conf in confidences:
-        LabelSet.label_confidence_threshold = conf
-        print("\nThreshold for label confidence:", LabelSet.label_confidence_threshold)
+        # LabelSet.label_confidence_threshold = conf
+        # print("\nThreshold for label confidence:", LabelSet.label_confidence_threshold)
 
         sklearn_aps, ap50s, precision, recall, total_sheep_count_sum, found_sheep_count_sum = calculate_metrics()
         conf_ap.append(sklearn_aps)
