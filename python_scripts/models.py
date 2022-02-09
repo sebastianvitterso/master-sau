@@ -20,7 +20,7 @@ from helpers import RAW_SIZE_RGB, RAW_SIZE_IR, CROPPED_SIZE, PARTITION_SIZE, COR
  ####### #    # #####  ###### ######  #####  ######   #   
                                                           
 class LabelSet():
-    label_confidence_threshold = 0.6
+    label_confidence_threshold = 0.5
 
     def __init__(self, labels:'List[Label]', is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
         self.labels = labels
@@ -126,7 +126,7 @@ class LabelSet():
         partition_labels = list(filter(lambda partition_label: partition_label.area() > 0, partition_labels))
         return LabelSet(partition_labels, self.is_cropped, partition_coordinates)
 
-    def should_show(self, prediction_label_set:'LabelSet'):
+    def has_mismatch(self, prediction_label_set:'LabelSet'):
 
         # False negatives
         for ground_truth_label in self.labels:
@@ -151,6 +151,35 @@ class LabelSet():
                 return True
 
         return False
+
+    def compare(self, prediction_label_set:'LabelSet', iou_threshold=0.5):
+        """ Should be used like this: `ground_truth_label_set.compare(prediction_label_set)` """
+
+        tp = np.zeros(len(prediction_label_set.labels)) # true positive counter
+        fp = np.zeros(len(prediction_label_set.labels)) # false positive counter
+        conf = np.zeros(len(prediction_label_set.labels))
+        cats = np.zeros(len(prediction_label_set.labels))
+
+        ground_truth_labels = self.labels.copy()
+        prediction_labels = prediction_label_set.labels.copy()
+        prediction_labels.sort(key=(lambda l: l.confidence), reverse=True)
+        for i, prediction_label in enumerate(prediction_labels.copy()):
+            conf[i] = prediction_label.confidence
+
+            found_match = False
+            ground_truth_labels.sort(key=(lambda l: l.getIntersectionOverUnion(prediction_label)), reverse=True)
+            for ground_truth_label in ground_truth_labels.copy():
+                if prediction_label.getIntersectionOverUnion(ground_truth_label) > iou_threshold:
+                    tp[i] = 1
+                    found_match = True
+                    cats[i] = ground_truth_label.category
+                    ground_truth_labels.remove(ground_truth_label)
+                    break
+
+            if not found_match:
+                fp[i] = 1
+
+        return (tp, fp, conf, cats)
 
 
 
