@@ -37,7 +37,7 @@ wandb online
 # wandb disabled
 
 # Train from pretrained weights
-# python train.py --img 1280 --batch 6 --epochs 1000 --data sheep.yaml --weights yolov5l6.pt --cache --device 0
+python train.py --img 1280 --batch 8 --epochs 1000 --data sheep-cropped-no-msx.yaml --weights yolov5l6.pt --cache --device 0
 # python train.py --img 1280 --batch 6 --epochs 1000 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
 
 # Train fusion from scratch

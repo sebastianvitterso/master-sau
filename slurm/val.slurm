@@ -9,8 +9,6 @@
 #SBATCH --mem=12000
 #SBATCH --job-name="YOLOv5 Validation for sheep recognition"
 #SBATCH --output=val.out
-#SBATCH --mail-user=sebastvi@stud.ntnu.no,ingebrin@stud.ntnu.no
-#SBATCH --mail-type=END
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluser/work/<username>/master-sau/slurm
@@ -30,5 +28,5 @@ pwd
 # pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html --user
 
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
-python val.py --weights runs/train/rgb/weights/best.pt --img 1280 --save-txt --save-conf --data sheep.yaml
+python val.py --weights runs/train/rgb-small-no-msx/weights/best.pt --img 1280 --save-txt --save-conf --data sheep-cropped-no-msx.yaml
 

@@ -30,6 +30,10 @@ PARTITION_TOP_LEFT_CORNERS_RAW = (
     ((0,1760), (925,1760), (1851, 1760), (2776, 1760)),
 )
 
+
+GRID_SIZE = (8,7)
+
+
 VALIDATION_SET = (
     ('2019_08_storli1_', (740, 782)),
     ('2019_08_storli1_', (1421, 1471)),

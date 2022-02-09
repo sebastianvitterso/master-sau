@@ -9,7 +9,8 @@ from matplotlib import pyplot as plt
 from models import LabelSet, Image, GridLabelSet, GridLabel
 
 # base folders
-INPUT_BASE_FOLDER = '../../data/validation/'
+# INPUT_BASE_FOLDER = '../../data/validation/'
+INPUT_BASE_FOLDER = '../../data-cropped-no-msx/validation/'
 CROPPED_BASE_FOLDER = '../../data-cropped/validation/'
 PARTITION_BASE_FOLDER = '../../data-partitioned/validation/'
 CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
@@ -17,13 +18,15 @@ CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
 # base folder structure
 RGB_FOLDER = 'images/'
 IR_FOLDER = 'ir/'
-LABEL_FOLDER = 'color_labels/' # change this to wherever your colored/occluded labels are at
+LABEL_FOLDER = 'labels/' # change this to wherever your colored/occluded labels are at
+# LABEL_FOLDER = 'colored_labels/' # change this to wherever your colored/occluded labels are at
+# LABEL_FOLDER = 'obscured_labels/' # change this to wherever your colored/occluded labels are at
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
+PREDICTION_FOLDER = '../yolov5/runs/val/exp10/labels/'
 
 # LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'black sheep', 1: 'brown sheep', 2: 'grey sheep', 3: 'white sheep' })
-# LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
+LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
 
 def compute_ap(recall, precision):
     """ Compute the average precision, given the recall and precision curves
@@ -65,16 +68,17 @@ def get_grid_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None,
     ground_truth_label_set = LabelSet.loadFromFilePath(base_folder + LABEL_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
     ground_truth_grid_label_set = GridLabelSet.from_label_set(ground_truth_label_set)
     prediction_label_set = LabelSet.loadFromFilePath(PREDICTION_FOLDER + fileroot + ".txt", is_cropped=use_ir, partition_coordinates=partition_coordinates)
+    prediction_label_set.removeLowConfidenceLabels()
     prediction_grid_label_set = GridLabelSet.from_label_set(prediction_label_set, is_prediction=True)
 
-    (tp, tn, fp, fn, total_sheep_count, found_sheep_count) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
+    (tp, tn, fp, fn, total_sheep_count, found_sheep_count, ground_truths, confidences) = ground_truth_grid_label_set.compare(prediction_grid_label_set)
 
     if show_image and ground_truth_label_set.has_mismatch(prediction_label_set):
         labels = (ground_truth_label_set, prediction_label_set, ground_truth_grid_label_set, prediction_grid_label_set)
         display_image(fileroot, base_folder, labels, partition_coordinates=partition_coordinates, use_ir=use_ir)
 
     if show_print:
-        print("METRICS")
+        print(f"GRID METRICS {fileroot}")
         print("true_positive_count:", tp)
         print("true_negative_count:", tn)
         print("false_positive_count:", fp)
@@ -82,7 +86,7 @@ def get_grid_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None,
         print("total_sheep_count:", total_sheep_count)
         print("found_sheep_count:", found_sheep_count)
 
-    return tp, tn, fp, fn, total_sheep_count, found_sheep_count
+    return tp, tn, fp, fn, total_sheep_count, found_sheep_count, ground_truths, confidences
 
 
 
@@ -105,24 +109,20 @@ def get_metrics(fileroot:str, partition_coordinates:'tuple[int, int]'=None, use_
 
 
     # category metrics [requires categoried labels]
-
     ground_truth_category_counter = defaultdict(lambda: 0)
     prediction_category_counter = defaultdict(lambda: 0)
     for label in ground_truth_label_set.labels:
         ground_truth_category_counter[label.category] += 1
     for category in cats[np.where(tp == 1)]: # count the category where we hit
         prediction_category_counter[int(category)] += 1
-    # for cat, count in ground_truth_category_counter.items():
-        # prediction_count = prediction_category_counter[cat]
-        # prediction_percentage = round(100 * prediction_count / count, 1)
-        # print(f"Category '{LABEL_CATEGORIES[cat]}' ({cat}): {prediction_percentage}% ({prediction_count} / {count})")
+
 
     if show_image and ground_truth_label_set.has_mismatch(prediction_label_set):
         labels = (ground_truth_label_set, prediction_label_set, None, None)
         display_image(fileroot, base_folder, labels, partition_coordinates=partition_coordinates, use_ir=use_ir)
 
     if show_print:
-        print("METRICS")
+        print(f"METRICS {fileroot}")
         print("true_positive_count:", sum(tp))
         print("false_postive_count:", sum(fp))
 
@@ -204,57 +204,103 @@ def display_image(fileroot:str, base_folder:str, labels:'tuple[LabelSet, LabelSe
 
 
 def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=False, show_image:bool=False, show_print:bool=False):
-    
-    total_tp = np.array([]) # true positive np.array
-    total_fp = np.array([]) # false positive np.array
-    total_ground_truth_category_counter = defaultdict(lambda: 0)
-    total_prediction_category_counter = defaultdict(lambda: 0)
-    total_sheep_count_sum = 0
+    print("\n====================")
+
+    tp = np.array([])
+    fp = np.array([])
+    conf = np.array([])
+    ground_truth_category_counter = defaultdict(lambda: 0)
+    prediction_category_counter = defaultdict(lambda: 0)
+    sheep_count = 0
+
+    grid_tp = 0
+    grid_tn = 0
+    grid_fp = 0
+    grid_fn = 0
+    grid_total_sheep_count = 0
+    grid_found_sheep_count = 0
+    grid_ground_truths = np.array([])
+    grid_confidences = np.array([])
+
 
     filenames = os.listdir(PREDICTION_FOLDER)
     filenames.sort()
     for filename in filenames:
         try:
             fileroot = filename.split('.')[0]
-            tp, fp, conf, ground_truth_category_counter, prediction_category_counter, total_sheep_count = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
-            total_tp = np.concatenate([total_tp, tp])
-            total_fp = np.concatenate([total_fp, fp])
-            for k,v in ground_truth_category_counter.items(): total_ground_truth_category_counter[k] += v
-            for k,v in prediction_category_counter.items(): total_prediction_category_counter[k] += v
-            total_sheep_count_sum += total_sheep_count
+            file_tp, file_fp, file_conf, file_ground_truth_category_counter, file_prediction_category_counter, file_sheep_count = get_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
+            tp = np.concatenate([tp, file_tp])
+            fp = np.concatenate([fp, file_fp])
+            conf = np.concatenate([conf, file_conf])
+            for k,v in file_ground_truth_category_counter.items(): ground_truth_category_counter[k] += v
+            for k,v in file_prediction_category_counter.items(): prediction_category_counter[k] += v
+            sheep_count += file_sheep_count
+
+            file_grid_tp, file_grid_tn, file_grid_fp, file_grid_fn, file_grid_total_sheep_count, file_grid_found_sheep_count, file_grid_ground_truths, file_grid_confidences = get_grid_metrics(fileroot, partition_coordinates, use_ir, show_image, show_print)
+            grid_tp += file_grid_tp
+            grid_tn += file_grid_tn
+            grid_fp += file_grid_fp
+            grid_fn += file_grid_fn
+            grid_total_sheep_count += file_grid_total_sheep_count
+            grid_found_sheep_count += file_grid_found_sheep_count
+            grid_ground_truths = np.concatenate([grid_ground_truths, file_grid_ground_truths])
+            grid_confidences = np.concatenate([grid_confidences, file_grid_confidences])
+
+
         except FileNotFoundError as e:
             print(e)
             # I had some missing labels... :/
 
-    precision = sum(total_tp) / (sum(total_tp) + sum(total_fp)) if sum(total_tp) > 0 else 0
-    recall = sum(total_tp) / total_sheep_count_sum if sum(total_tp) > 0 else 0
-
-    # # This is the one Kari used in her metrics
-    # sklearn_aps = average_precision_score(ground_truth, predictions)
-
     # Sort by confidence
     sort_order = np.argsort(-conf)
-    total_tp, total_fp, conf = total_tp[sort_order], total_fp[sort_order], conf[sort_order]
+    tp, fp, conf = tp[sort_order], fp[sort_order], conf[sort_order]
 
-    # TODO: Still bit unsure if this is correct
-    tpc = total_tp.cumsum(0)
-    fpc = total_fp.cumsum(0)
-    recall_curve = tpc / (total_sheep_count + 1e-16)  # recall curve
+    tpc = tp.cumsum(0)
+    fpc = fp.cumsum(0)
+    recall_curve = tpc / (sheep_count + 1e-16)  # recall curve
     precision_curve = tpc / (tpc + fpc + 1e-16)  # precision curve
 
     ap50s, mpre, mrec = compute_ap(recall_curve, precision_curve)
 
-    print("METRICS")
+    px = np.linspace(0, 1, 1000)
+    r = np.interp(-px, -conf, recall_curve, left=0) # negative x, xp because xp decreases
+    p = np.interp(-px, -conf, precision_curve, left=1)  # p at pr_score
+    f1 = 2 * p * r / (p + r + 1e-16)
+    
+    i = f1.argmax()  # max F1 index
+    best_conf = i / 1000
+    precision = p[i]
+    recall = r[i]
+
+    print("\nMETRICS")
     print("AP@.5:", ap50s)
     print("Precision:", precision)
     print("Recall:", recall)
+    print("Confidence:", best_conf)
 
-    for cat, count in total_ground_truth_category_counter.items():
-        prediction_count = total_prediction_category_counter[cat]
+    for cat, count in ground_truth_category_counter.items():
+        prediction_count = prediction_category_counter[cat]
         prediction_percentage = round(100 * prediction_count / count, 1)
         print(f"Category '{LABEL_CATEGORIES[cat]}' - Recall: {prediction_percentage}% ({prediction_count} / {count})")
-    
-    return ap50s, precision, recall, total_sheep_count_sum
+
+
+    grid_precision = grid_tp / (grid_tp + grid_fp) if grid_tp > 0 else 0
+    grid_recall = grid_tp / (grid_tp + grid_fn) if grid_tp > 0 else 0
+
+    grid_sheep_recall = grid_found_sheep_count / grid_total_sheep_count
+
+    # This is the one Kari used in her metrics
+    grid_sklearn_aps = average_precision_score(grid_ground_truths, grid_confidences)
+
+    print("\nGRID METRICS")
+    print("sklearn_aps:", grid_sklearn_aps)
+    print("precision:", grid_precision)
+    print("recall:", grid_recall)
+    print("sheep_recall:", grid_sheep_recall)
+
+
+
+
 
 def calculate_metrics_for_confidences():
     # get_metrics("2019_08_storli1_0720", partition_coordinates=None, use_ir=False, show_image=True)
@@ -267,8 +313,8 @@ def calculate_metrics_for_confidences():
     conf_sheep_recall = []
 
     for conf in confidences:
-        LabelSet.label_confidence_threshold = conf
-        print("\nThreshold for label confidence:", LabelSet.label_confidence_threshold)
+        # LabelSet.label_confidence_threshold = conf
+        # print("\nThreshold for label confidence:", LabelSet.label_confidence_threshold)
 
         sklearn_aps, ap50s, precision, recall, total_sheep_count_sum, found_sheep_count_sum = calculate_metrics()
         conf_ap.append(sklearn_aps)
