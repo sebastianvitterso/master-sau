@@ -330,7 +330,7 @@ class GridLabelSet():
 
     @classmethod
     def from_label_set(cls, label_set:LabelSet, is_prediction:bool=False):
-        grid_label_constructor_vectorized = np.vectorize(lambda x,y: GridLabel.from_coordinates(x,y, label_set.is_cropped))
+        grid_label_constructor_vectorized = np.vectorize(lambda x,y: GridLabel.from_coordinates(x,y, label_set.is_cropped, is_prediction))
         grid:np.ndarray = np.fromfunction(grid_label_constructor_vectorized, (8,7))
         
         for label in label_set.labels:
@@ -343,6 +343,9 @@ class GridLabelSet():
                     if grid_label.get_overlap_ratio(label) > 0.1:
                         grid_label.value = True
                         grid_label.sheep_count += 1
+                        grid_label.confidence = max(grid_label.confidence, label.confidence)
+                        # grid_label.confidence = min(max(grid_label.confidence, label.confidence) + min(grid_label.confidence, label.confidence) * 0.2, 1)
+
                 else:
                     if grid_label.get_overlap_ratio(label) > 0.2:
                         grid_label.value = True
@@ -359,12 +362,19 @@ class GridLabelSet():
         fp = 0 # false positive counter
         fn = 0 # false negative counter
 
+        ground_truths:np.ndarray = np.array([])
+        confidences:np.ndarray = np.array([])
+
         total_sheep_count = 0
         found_sheep_count = 0
 
         for ix, iy in np.ndindex(self.grid.shape):
             ground_truth_grid_label:'GridLabel' = self.grid[ix, iy]
             prediction_grid_label:'GridLabel' = prediction_grid_label_set.grid[ix, iy]
+
+            if ground_truth_grid_label.value is not None:
+                ground_truths = np.append(ground_truths, 1 if ground_truth_grid_label.value == True else 0)
+                confidences = np.append(confidences, prediction_grid_label.confidence)
 
             if(ground_truth_grid_label.value == True and prediction_grid_label.value == True): tp += 1
             if(ground_truth_grid_label.value == True and prediction_grid_label.value == False): fn += 1
@@ -377,7 +387,7 @@ class GridLabelSet():
                     found_sheep_count += ground_truth_grid_label.sheep_count
 
 
-        return (tp, tn, fp, fn, total_sheep_count, found_sheep_count)
+        return (tp, tn, fp, fn, total_sheep_count, found_sheep_count, ground_truths, confidences)
 
 
 
@@ -391,13 +401,14 @@ class GridLabelSet():
   #####  #    # # #####  ####### #    # #####  ###### ###### 
                                                              
 class GridLabel():
-    def __init__(self, bounding_box:'tuple[tuple[int, int],tuple[int, int]]'):
+    def __init__(self, bounding_box:'tuple[tuple[int, int],tuple[int, int]]', is_prediction:bool=False):
         self.value = False # can be True|False|None
         self.bounding_box = bounding_box
         self.sheep_count = 0
+        self.confidence = 0 if is_prediction else 1
 
     @classmethod
-    def from_coordinates(cls, x:int, y:int, is_cropped:bool):
+    def from_coordinates(cls, x:int, y:int, is_cropped:bool, is_prediction:bool=False):
         grid_size = (8,7)
         image_size = CROPPED_SIZE if is_cropped else RAW_SIZE_RGB
         x_min = 0 if x == 0 else math.ceil(image_size[0] * (x / grid_size[0]))
@@ -406,7 +417,7 @@ class GridLabel():
         y_min = 0 if y == 0 else math.ceil(image_size[1] * (y / grid_size[1]))
         y_max = math.ceil(image_size[1] * ((y + 1) / grid_size[1]))
 
-        return cls( ((x_min, x_max), (y_min, y_max)) )
+        return cls( ((x_min, x_max), (y_min, y_max)), is_prediction=is_prediction)
 
     def get_overlap_ratio(self, label:Label):
         # Make a spoofy Label for this GridLabel, to get the intersection area of the given Label and this GridLabel.
