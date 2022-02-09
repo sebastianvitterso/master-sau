@@ -9,8 +9,8 @@ from matplotlib import pyplot as plt
 from models import LabelSet, Image, GridLabelSet, GridLabel
 
 # base folders
-INPUT_BASE_FOLDER = '../../data/validation/'
-# INPUT_BASE_FOLDER = '../../data-cropped-no-msx/validation/'
+# INPUT_BASE_FOLDER = '../../data/validation/'
+INPUT_BASE_FOLDER = '../../data-cropped-no-msx/validation/'
 CROPPED_BASE_FOLDER = '../../data-cropped/validation/'
 PARTITION_BASE_FOLDER = '../../data-partitioned/validation/'
 CROPPED_PARTITION_BASE_FOLDER = '../../data-cropped-partition/validation/'
@@ -23,7 +23,7 @@ LABEL_FOLDER = 'labels/' # change this to wherever your colored/occluded labels 
 # LABEL_FOLDER = 'obscured_labels/' # change this to wherever your colored/occluded labels are at
 
 # probably found in a validation run
-PREDICTION_FOLDER = '../yolov5/runs/val/rgb-val/labels/'
+PREDICTION_FOLDER = '../yolov5/runs/val/exp10/labels/'
 
 # LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'black sheep', 1: 'brown sheep', 2: 'grey sheep', 3: 'white sheep' })
 LABEL_CATEGORIES = defaultdict(lambda: 'sheep', { 0: 'sheep', 1: 'partially covered', 2: 'partially obscured', 3: 'completely obscured' })
@@ -251,14 +251,10 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
             print(e)
             # I had some missing labels... :/
 
-    # # This is the one Kari used in her metrics
-    # sklearn_aps = average_precision_score(ground_truth, predictions)
-
     # Sort by confidence
     sort_order = np.argsort(-conf)
     tp, fp, conf = tp[sort_order], fp[sort_order], conf[sort_order]
 
-    # TODO: Still bit unsure if this is correct
     tpc = tp.cumsum(0)
     fpc = fp.cumsum(0)
     recall_curve = tpc / (sheep_count + 1e-16)  # recall curve
@@ -272,6 +268,7 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
     f1 = 2 * p * r / (p + r + 1e-16)
     
     i = f1.argmax()  # max F1 index
+    best_conf = i / 1000
     precision = p[i]
     recall = r[i]
 
@@ -279,6 +276,7 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
     print("AP@.5:", ap50s)
     print("Precision:", precision)
     print("Recall:", recall)
+    print("Confidence:", best_conf)
 
     for cat, count in ground_truth_category_counter.items():
         prediction_count = prediction_category_counter[cat]
