@@ -318,13 +318,13 @@ def calculate_metrics(partition_coordinates:'tuple[int, int]'=None, use_ir:bool=
     results = [ap50s, best_conf, precision, recall, grid_sklearn_aps, grid_precision, grid_recall, grid_sheep_recall]
     results = ', '.join(map(lambda x: str(x), results))
     print(results)
-
-
+    
+    print("\nCATEGORY METRICS")
     cats = [best_conf]
     SELECTED_LABEL_CATEGORIES = LABEL_CATEGORIES_OBSCURED
     for cat in [0,3,2,1]:
-        count = ground_truth_color_counter[cat]
-        prediction_count = prediction_color_counter[cat]
+        count = ground_truth_obscured_counter[cat]
+        prediction_count = prediction_obscured_counter[cat]
         prediction_percentage = round(100 * prediction_count / count, 1)
         print(f"Category '{SELECTED_LABEL_CATEGORIES[cat]}' - Recall: {prediction_percentage}% ({prediction_count} / {count})")
         cats.append(prediction_count / count)
