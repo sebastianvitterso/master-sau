@@ -3,6 +3,7 @@ from skimage import transform
 import numpy as np
 import math
 import cv2
+import os
 
 from helpers import RAW_SIZE_RGB, RAW_SIZE_IR, CROPPED_SIZE, PARTITION_SIZE, CORNER_TOP_LEFT, CORNER_BOTTOM_RIGHT, GET_PARTITION_TOP_LEFT_CORNER
 
@@ -458,6 +459,8 @@ class Image:
 
     @classmethod
     def loadFromImagePath(cls, image_path:str, is_distorted:bool=False, is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(image_path)
         img = cv2.imread(image_path)
         return cls(img, is_distorted, is_cropped, partition_coordinates)
 
