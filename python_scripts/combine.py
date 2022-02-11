@@ -9,13 +9,14 @@ import os
 from typing import List
 from models import LabelSet
 
-PREDICTION_BASE_FOLDER = '../../predictions/'
-COMBINED_PREDICTION_BASE_FOLDER = '../../predictions_combined/'
-GROUND_TRUTH_PARTITION_FOLDER = '../../data-partitioned/train/labels/'
-GROUND_TRUTH_FOLDER = '../../data/train/labels/'
+PREDICTION_FOLDER = 'rgb-small-cropped-partitioned-no-msx'
+PREDICTION_PATH = f'../yolov5/runs/val/{PREDICTION_FOLDER}/labels/'
 
-def combineResults(folder:str, is_cropped:bool=False, save:bool=False):
-    prediction_folder = PREDICTION_BASE_FOLDER + folder
+COMBINED_PREDICTION_BASE_FOLDER = f'../yolov5/runs/val/{PREDICTION_FOLDER}/labels_combined/'
+
+def combineResults(is_cropped:bool=False, save:bool=False):
+    os.makedirs(os.path.dirname(COMBINED_PREDICTION_BASE_FOLDER), exist_ok=True)
+    prediction_folder = PREDICTION_PATH
     prediction_filenames = os.listdir(prediction_folder)
 
     prediction_roots = []
@@ -49,11 +50,11 @@ def combineResults(folder:str, is_cropped:bool=False, save:bool=False):
         combined_sets.append(combined_label_set)
         
         if(save and len(combined_label_set.labels) > 0): 
-            combined_label_set.writeToFilePath(COMBINED_PREDICTION_BASE_FOLDER + folder + prediction_root + '.txt', with_confidence=True)
+            combined_label_set.writeToFilePath(COMBINED_PREDICTION_BASE_FOLDER + prediction_root + '.txt', with_confidence=True)
     
     return combined_sets
 
 
 
 if __name__ == "__main__":
-    combineResults('partitioned_rgb_01/', save=True)
+    combineResults(is_cropped=True, save=True)
