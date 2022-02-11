@@ -172,7 +172,7 @@ class LabelSet():
             found_match = False
             ground_truth_labels.sort(key=(lambda l: l.getIntersectionOverUnion(prediction_label)), reverse=True)
             for ground_truth_label in ground_truth_labels.copy():
-                if prediction_label.getIntersectionOverUnion(ground_truth_label) > iou_threshold:
+                if prediction_label.getIntersectionOverUnion(ground_truth_label) >= iou_threshold:
                     tp[i] = 1
                     found_match = True
                     cats[i] = ground_truth_label.category
