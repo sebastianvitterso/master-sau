@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="A100"
+#SBATCH --constraint="A100|V100"
 #SBATCH --account=ie-idi
 #SBATCH --time=167:00:00
 #SBATCH --nodes=1
@@ -28,5 +28,6 @@ pwd
 # pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html --user
 
 # python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
-python val.py --weights runs/train/rgb-small-no-msx/weights/best.pt --img 1280 --save-txt --save-conf --data sheep-cropped-no-msx.yaml
+FOLDER="rgb-small-no-msx"
+python val.py --weights "runs/train/$FOLDER/weights/best.pt" --img 1280 --save-txt --save-conf --data sheep-cropped-no-msx.yaml --name $FOLDER
 
