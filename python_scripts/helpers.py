@@ -4,6 +4,7 @@
 
 # coordinates are (x, y), measured in pixels, respectively from left and top.
 # cropped coordinates were retrieved simply by measuring in photopea.com
+import os
 from typing import List
 
 CORNER_TOP_LEFT = (480, 285)
@@ -33,7 +34,7 @@ PARTITION_TOP_LEFT_CORNERS_RAW = (
 
 GRID_SIZE = (8,7)
 
-
+# OLD VALIDATION SET
 VALIDATION_SET = (
     ('2019_08_storli1_', (740, 782)),
     ('2019_08_storli1_', (1421, 1471)),
@@ -55,6 +56,8 @@ VALIDATION_SET = (
     ('2021_10_holtan_', (2521, 2589)),
 )
 
+VALIDATION_BASE_FOLDER = '../../data-cropped-no-msx-test/validation/images/'
+
 def GET_VALIDATION_SET_FILEROOTS(partitioning_size:'tuple[int,int]'=None) -> List[str]:
     validation_set = []
 
@@ -65,11 +68,19 @@ def GET_VALIDATION_SET_FILEROOTS(partitioning_size:'tuple[int,int]'=None) -> Lis
             for y in range(partitioning_size[1]):
                 partitioning_set.append(f'_p{x}{y}')
 
-    for prefix, (from_num, to_num) in VALIDATION_SET:
-        for i in range(from_num, to_num + 1):
-            name = f'{prefix}{i:04}'
-            for partition in partitioning_set:
-                partition_name = name + partition
-                validation_set.append(partition_name)
+    filenames = os.listdir(VALIDATION_BASE_FOLDER)
+    filenames.sort()
+    for filename in filenames:
+        fileroot = filename.split('.')[0]
+        for partition in partitioning_set:
+            partition_name = fileroot + partition
+            validation_set.append(partition_name)
+
+    # for prefix, (from_num, to_num) in VALIDATION_SET:
+    #     for i in range(from_num, to_num + 1):
+    #         name = f'{prefix}{i:04}'
+    #         for partition in partitioning_set:
+    #             partition_name = name + partition
+    #             validation_set.append(partition_name)
     
     return validation_set

@@ -27,7 +27,7 @@ def combineResults(is_cropped:bool=False, save:bool=False):
     for prediction_filename in prediction_filenames:
         px,py = int(prediction_filename[-6:-5]), int(prediction_filename[-5:-4])
         label_set = LabelSet.loadFromFilePath(prediction_folder + prediction_filename, False, ( px, py ) )
-        label_set.removeLowConfidenceLabels(0.5)
+        # label_set.removeLowConfidenceLabels(0.5)
 
         # if prediction name is 2019_08_storli1_0740_p11.txt, then the root is 2019_08_storli1_0740 (which is 8 characters shorter)
         prediction_root = prediction_filename[:-8]
