@@ -1,4 +1,4 @@
-path: ../../data-cropped-no-msx-test/
+path: ../../data-cropped-partitioned-no-msx-test/
 train: ./train/images
 val: ./validation/images
 test: ./test/images
