@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="A100|V100"
+#SBATCH --constraint="A100"
 #SBATCH --account=ie-idi
 #SBATCH --time=167:00:00
 #SBATCH --nodes=1
@@ -39,7 +39,7 @@ wandb online
 
 export ARRAY_RUN_NAME="variance_03_exp$(printf %02.0f $SLURM_ARRAY_TASK_ID)"
 
-python train.py --img 1280 --batch 8 --epochs 2000 --data sheep-cropped-no-msx.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0 --name "$ARRAY_RUN_NAME"
+python train.py --img 1280 --batch 8 --epochs 2000 --data sheep-cropped-no-msx-test.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0 --name "$ARRAY_RUN_NAME"
 
-# python val.py --weights "runs/train/$ARRAY_RUN_NAME/weights/best.pt" --img 1280 --save-txt --save-conf --data sheep-cropped-no-msx.yaml --name "$ARRAY_RUN_NAME"
+python val.py --weights "runs/train/$ARRAY_RUN_NAME/weights/best.pt" --img 1280 --save-txt --save-conf --data sheep-cropped-no-msx.yaml --name "$ARRAY_RUN_NAME"
 
