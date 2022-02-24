@@ -26,7 +26,7 @@ try:
     
     assert hasattr(wandb, '__version__')  # verify package import not local dir
     
-    wandb.init(project="test-project", entity="locatesheep")
+    wandb.init(project="test-project", entity="locatesheep", name=os.getenv("ARRAY_RUN_NAME"))
 
     if pkg.parse_version(wandb.__version__) >= pkg.parse_version('0.12.2') and RANK in [0, -1]:
         wandb.login(timeout=30)

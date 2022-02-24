@@ -1,17 +1,17 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="A100|V100"
+#SBATCH --constraint="A100"
 #SBATCH --account=ie-idi
 #SBATCH --time=167:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=12000
 #SBATCH --job-name="Variance metrics"
-#SBATCH --output=train-%a.out
+#SBATCH --output=variance-train-3-%2a.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no,ingebrin@stud.ntnu.no
 #SBATCH --mail-type=END
-#SBATCH --array=1-20
+#SBATCH --array=1-50%10
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR} # /cluster/work/<username>/master-sau/slurm
@@ -37,19 +37,9 @@ wandb online
 # # Disable wandb
 # wandb disabled
 
-# Train from pretrained weights
-# python train.py --img 1280 --batch 8 --epochs 1000 --data sheep-cropped-no-msx.yaml --weights yolov5l6.pt --cache --device 0
-# python train.py --img 1280 --batch 6 --epochs 1000 --data sheep.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0
+export ARRAY_RUN_NAME="variance_03_exp$(printf %02.0f $SLURM_ARRAY_TASK_ID)"
 
-# Train from scratch
-python train.py --img 1280 --batch 8 --epochs 2000 --data sheep-cropped-no-msx.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0 --name "variance_02_exp$(printf %02.0f $SLURM_ARRAY_TASK_ID)"
+python train.py --img 1280 --batch 8 --epochs 2000 --data sheep-cropped-no-msx-test.yaml --weights '' --cfg yolov5l6.yaml --cache --device 0 --name "$ARRAY_RUN_NAME"
 
-# Train from scratch with partitions
-# python train.py --img 1280 --batch 6 --epochs 1000 --data sheep-partitioned.yaml --weights yolov5l6.pt --cache --device 0
-
-# python train.py --img 1280 --batch 12 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --cache --device 0,1 #,3,4,5,6,8,9
-# python -m torch.distributed.launch --nproc_per_node 2 train.py --img 1280 --batch 12 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --cache --device 0,1 #,3,4,5,6,8,9
-# OMP_NUM_THREADS=1 python -m torch.distributed.run --nproc_per_node 2 train.py --img 1280 --batch 12 --epochs 3 --data sheep.yaml --weights yolov5l6.pt --cache --device 0,1 #,3,4,5,6,8,9
-# python detect.py --weights yolov5s.pt --img 1024 --source ../data/test/
-# python val.py --weights rgb.pt --img 1280 # --save-txt --save-conf 
+python val.py --weights "runs/train/$ARRAY_RUN_NAME/weights/best.pt" --img 1280 --save-txt --save-conf --data sheep-cropped-no-msx.yaml --name "$ARRAY_RUN_NAME"
 
