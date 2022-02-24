@@ -1,0 +1,8 @@
+path: ../../data-cropped-no-msx-test/
+train: ./train/images
+val: ./validation/images
+test: ./test/images
+klabo: ./klabo/images
+
+nc: 1
+names: ['sheep']

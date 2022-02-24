@@ -3,8 +3,8 @@ import shutil
 from helpers import GET_VALIDATION_SET_FILEROOTS
     
 # base folders
-TRAIN_BASE_FOLDER = '../../data-cropped-partitioned/train/'
-VALIDATION_BASE_FOLDER = '../../data-cropped-partitioned/validation/'
+TRAIN_BASE_FOLDER = '../../data-cropped-partitioned-no-msx-test/train/'
+VALIDATION_BASE_FOLDER = '../../data-cropped-partitioned-no-msx-test/test/'
 
 # base folder structure
 RGB_FOLDER = 'images/'
@@ -18,7 +18,7 @@ moved_ir = 0
 moved_label = 0
 # Move validation images and labels
 for i, fileroot in enumerate(validation_set_fileroots):
-        
+
     filename = fileroot + '.JPG'
     if os.path.exists(TRAIN_BASE_FOLDER + RGB_FOLDER + filename) and os.path.exists(VALIDATION_BASE_FOLDER + RGB_FOLDER):
         # print(TRAIN_BASE_FOLDER + RGB_FOLDER + filename, VALIDATION_BASE_FOLDER + RGB_FOLDER + filename)
@@ -32,7 +32,7 @@ for i, fileroot in enumerate(validation_set_fileroots):
     
     filename = fileroot + '.txt'
     if os.path.exists(TRAIN_BASE_FOLDER + LABEL_FOLDER + filename) and os.path.exists(VALIDATION_BASE_FOLDER + LABEL_FOLDER):
-        # print(TRAIN_BASE_FOLDER + IR_FOLDER + filename, VALIDATION_BASE_FOLDER + IR_FOLDER + filename)
+        # print(TRAIN_BASE_FOLDER + LABEL_FOLDER + filename, VALIDATION_BASE_FOLDER + LABEL_FOLDER + filename)
         shutil.move(TRAIN_BASE_FOLDER + LABEL_FOLDER + filename, VALIDATION_BASE_FOLDER + LABEL_FOLDER)
         moved_label += 1
     

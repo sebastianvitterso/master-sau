@@ -5,14 +5,14 @@ import path from 'path';
 // HELPERS
 
 
-const BASE_PATH = path.resolve('../../data-cropped-partitioned-no-msx/train/')
+const BASE_PATH = path.resolve('../../data-cropped-partitioned-no-msx-test/train/')
 
 const FROM_PATH = path.resolve(BASE_PATH + '/images/')
 const MSX_FILENAMES = String(await readFile(path.resolve('msx_ir.txt'))).split('\n').map(line => line.trim())
 const TO_PATH = path.resolve(BASE_PATH + '/images_msx/')
 
-if (!existsSync(BASE_PATH + '/images_msx/')){
-  mkdirSync(BASE_PATH + '/images_msx/');
+if (!existsSync(TO_PATH)){
+  mkdirSync(TO_PATH);
 }
 
 // SCRIPT
