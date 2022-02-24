@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=12000
 #SBATCH --job-name="Variance metrics"
-#SBATCH --output=variance-train-3-%a.out
+#SBATCH --output=variance-train-3-%2a.out
 #SBATCH --mail-user=sebastvi@stud.ntnu.no,ingebrin@stud.ntnu.no
 #SBATCH --mail-type=END
 #SBATCH --array=1-50%10
