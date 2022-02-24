@@ -147,7 +147,7 @@ def run(data,
     if not training:
         if device.type != 'cpu':
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
-        task = task if task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
+        task = task if task in ('train', 'val', 'test', 'klabo') else 'val'  # path to train/val/test images
         dataloader = create_dataloader(data[task], imgsz, batch_size, gs, single_cls, pad=0.5, rect=True,
                                        prefix=colorstr(f'{task}: '))[0]
 
@@ -329,7 +329,7 @@ def main(opt):
     set_logging()
     check_requirements(exclude=('tensorboard', 'thop'))
 
-    if opt.task in ('train', 'val', 'test'):  # run normally
+    if opt.task in ('train', 'val', 'test', 'klabo'):  # run normally
         run(**vars(opt))
 
     elif opt.task == 'speed':  # speed benchmarks
