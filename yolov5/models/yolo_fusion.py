@@ -81,7 +81,6 @@ class Detect(nn.Module):
 
 class FusionModel(nn.Module):
     def __init__(self, cfg='models/yolov5s.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
-        cfg='models/hub/yolov5l6.yaml' # TODO: This should not be here probably
         super().__init__()
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
@@ -103,10 +102,12 @@ class FusionModel(nn.Module):
         self.backbone_ir = deepcopy(self.backbone_rgb)
         self.names = [str(i) for i in range(self.yaml['nc'])]  # default names
         self.inplace = self.yaml.get('inplace', True)
+        
+        last_backbone_index = len(self.backbone_rgb)-1
         self.dimension_reducer4 = nn.Conv2d(model_ch[4]*2, model_ch[4], kernel_size=1, stride=1, padding=0, bias=False)
         self.dimension_reducer6 = nn.Conv2d(model_ch[6]*2, model_ch[6], kernel_size=1, stride=1, padding=0, bias=False)
         self.dimension_reducer8 = nn.Conv2d(model_ch[8]*2, model_ch[8], kernel_size=1, stride=1, padding=0, bias=False)
-        self.dimension_reducer11 = nn.Conv2d(model_ch[11]*2, model_ch[11], kernel_size=1, stride=1, padding=0, bias=False)
+        self.dimension_reducer11 = nn.Conv2d(model_ch[last_backbone_index]*2, model_ch[last_backbone_index], kernel_size=1, stride=1, padding=0, bias=False)
 
         # Build strides, anchors
         m = self.head[-1]  # Detect()
