@@ -66,13 +66,6 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
     
-    # TODO: Remove this
-    # cfg = 'models/hub/yolov5l6.yaml'
-    # batch_size = 1
-    # epochs = 1
-    # data = 'data/sheep.yaml'
-    # opt.cache = ''
-
     # Directories
     w = save_dir / 'weights'  # weights dir
     (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir

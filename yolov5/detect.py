@@ -57,10 +57,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         ):
 
-    # TODO: Remove local debugging 
-    # weights = ROOT / 'fusion.pt'
-    # source=ROOT / '../data/train/images'
-
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
