@@ -444,6 +444,9 @@ CAMERA_MATRIX_K = np.load("./parameters/camera_matrix_K.npy")
 CAMERA_DIST_COEFFS = np.load("./parameters/camera_dist_coeffs.npy")
 TRANSFORM_VIS_TO_IR = np.load("./parameters/Transform_vis_to_IR.npy")
 TRANSFORM_IR_TO_VIS = np.load("./parameters/Transform_IR_to_Vis.npy")
+UNDISTORTION_MAP_X = np.load("./parameters/undistortion_map_x.npy")
+UNDISTORTION_MAP_Y = np.load("./parameters/undistortion_map_y.npy")
+
 
 class Image:
     def __init__(self, img:np.ndarray, is_distorted:bool=False, is_cropped:bool=False, partition_coordinates:'tuple[int, int]'=None):
@@ -472,10 +475,23 @@ class Image:
 
         assert self.is_distorted, "Don't undistort an already undistorted image!"
 
-        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(CAMERA_MATRIX_K, CAMERA_DIST_COEFFS, RAW_SIZE_IR, 1, RAW_SIZE_IR)    
-        img = cv2.undistort(self.img, CAMERA_MATRIX_K, CAMERA_DIST_COEFFS, None, newcameramtx)
-        T = transform.AffineTransform(TRANSFORM_VIS_TO_IR)
-        img = (transform.warp(img, T, output_shape=(RAW_SIZE_RGB[1], RAW_SIZE_RGB[0])) * 255).astype(int)
+        # Undistort is slow because it calculates the map everytime
+        # newcameramtx, roi=cv2.getOptimalNewCameraMatrix(CAMERA_MATRIX_K, CAMERA_DIST_COEFFS, RAW_SIZE_IR, 1, RAW_SIZE_IR)    
+        # img = cv2.undistort(self.img, CAMERA_MATRIX_K, CAMERA_DIST_COEFFS, None, newcameramtx)
+
+        # Faster by storing the map, and then only using remap
+        # mapx, mapy = cv2.initUndistortRectifyMap(CAMERA_MATRIX_K, CAMERA_DIST_COEFFS, None, newcameramtx, RAW_SIZE_IR, 5)
+        # np.save("./parameters/undistortian_map_x.npy", mapx)
+        # np.save("./parameters/undistortian_map_y.npy", mapy)  
+        img = cv2.remap(self.img, UNDISTORTION_MAP_X, UNDISTORTION_MAP_Y, cv2.INTER_LINEAR)
+
+        # Old slow warp with scikit
+        # T = transform.AffineTransform(TRANSFORM_VIS_TO_IR)
+        # img = (transform.warp(img, T, output_shape=(RAW_SIZE_RGB[1], RAW_SIZE_RGB[0])) * 255).astype(int)
+
+        # Fater warp with cv2
+        T = transform.AffineTransform(TRANSFORM_IR_TO_VIS)
+        img = (cv2.warpAffine(img, T.params[:2],(RAW_SIZE_RGB[0], RAW_SIZE_RGB[1]))).astype(int)
         return Image(img, is_distorted=False, is_cropped=self.is_cropped, partition_coordinates=self.partition_coordinates)
 
     def crop(self) -> 'Image':
@@ -539,6 +555,6 @@ def testLabelsetFromPartitionsFunction():
     joinedLabelSet = LabelSet.fromPartitions(partitionlabelSetRows)
     print(joinedLabelSet)
 
-if __name__ == "__main__":
-    testLabelsetFromPartitionsFunction()
+# if __name__ == "__main__":
+#     testLabelsetFromPartitionsFunction()
 
