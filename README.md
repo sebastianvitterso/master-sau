@@ -7,9 +7,13 @@ The data folder is ignored, but should look like this:
 - data/
   - train/
     - images/*.jpg
+    - ir/*.jpg
     - labels/*.txt
   - validation/
     - images/*.jpg
+    - ir/*.jpg
     - labels/*.txt
   - test/
-    - *.jpg
+    - images/*.jpg
+    - ir/*.jpg
+    - labels/*.txt
